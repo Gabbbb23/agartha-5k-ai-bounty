@@ -168,7 +168,7 @@ export function LifestyleStep({ form }: LifestyleStepProps) {
           <input
             {...register('lifestyle.sleepHours', { valueAsNumber: true })}
             type="range"
-            min="0"
+            min="0.5"
             max="12"
             step="0.5"
             className="flex-1 h-2 bg-clinical-secondary rounded-full appearance-none cursor-pointer
@@ -177,7 +177,7 @@ export function LifestyleStep({ form }: LifestyleStepProps) {
                        [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:cursor-pointer"
           />
           <span className="text-2xl font-bold text-white w-16 text-center">
-            {lifestyle?.sleepHours || 7}h
+            {lifestyle?.sleepHours ?? 7}h
           </span>
         </div>
         {(lifestyle?.sleepHours ?? 7) < 6 && (

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAppStore } from '@/shared/store/appStore'
+import { ExportButton } from '@/shared/components/ExportButton'
+import { exportAuditLogToJson, exportAuditLogToCsv } from '@/shared/services/exportService'
 import { 
   Clock, 
   User, 
@@ -20,7 +22,6 @@ import {
   ChevronRight,
   Search,
   Filter,
-  Download,
   RefreshCw,
   Calendar
 } from 'lucide-react'
@@ -84,16 +85,6 @@ export function AuditLogPage() {
     )
   }
 
-  const handleExport = () => {
-    const data = JSON.stringify(filteredEntries, null, 2)
-    const blob = new Blob([data], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `audit-log-${format(new Date(), 'yyyy-MM-dd-HHmmss')}.json`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
 
   return (
     <div className="space-y-6">
@@ -242,14 +233,22 @@ export function AuditLogPage() {
             >
               <RefreshCw className={`w-4 h-4 ${isAuditLogLoading ? 'animate-spin' : ''}`} />
             </button>
-            <button
-              onClick={handleExport}
-              className="px-3 py-2.5 rounded-lg bg-clinical-secondary border border-white/10 
-                         text-clinical-muted hover:text-white hover:border-white/20 transition-colors"
-              title="Export JSON"
-            >
-              <Download className="w-4 h-4" />
-            </button>
+            <ExportButton
+              label="Export"
+              disabled={filteredEntries.length === 0}
+              options={[
+                {
+                  label: 'Export as JSON',
+                  format: 'json',
+                  onClick: () => exportAuditLogToJson(filteredEntries),
+                },
+                {
+                  label: 'Export as CSV',
+                  format: 'csv',
+                  onClick: () => exportAuditLogToCsv(filteredEntries),
+                },
+              ]}
+            />
           </div>
         </div>
 

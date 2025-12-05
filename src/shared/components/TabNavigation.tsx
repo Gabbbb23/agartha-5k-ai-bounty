@@ -1,6 +1,6 @@
-import { Activity, History } from 'lucide-react'
+import { Activity, History, Database } from 'lucide-react'
 
-export type TabId = 'workflow' | 'audit'
+export type TabId = 'workflow' | 'audit' | 'medical-db'
 
 interface TabNavigationProps {
   activeTab: TabId
@@ -10,6 +10,7 @@ interface TabNavigationProps {
 const tabs = [
   { id: 'workflow' as const, label: 'Clinical Workflow', shortLabel: 'Workflow', icon: Activity },
   { id: 'audit' as const, label: 'Audit Log', shortLabel: 'Audit', icon: History },
+  { id: 'medical-db' as const, label: 'Medical Database', shortLabel: 'Database', icon: Database },
 ]
 
 export function TabNavigation({ activeTab, onTabChange }: TabNavigationProps) {

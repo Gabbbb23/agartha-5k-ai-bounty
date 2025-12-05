@@ -1,29 +1,18 @@
-// Simulated drug interaction database for validation/enrichment of LLM output
+// Drug interaction database with Supabase integration and local fallback
+import {
+  fetchDrugInteractions,
+  fetchContraindications,
+  fetchAllergyMappings,
+  getCachedDrugInteractions,
+  getCachedContraindications,
+  getCachedAllergyMappings,
+  DrugInteractionEntry,
+  ContraindicationEntry,
+  AllergyMappingEntry,
+} from '@/shared/services/medicalDatabaseService'
 
-export interface DrugInteractionEntry {
-  drug1: string
-  drug2: string
-  severity: 'minor' | 'moderate' | 'major' | 'contraindicated'
-  description: string
-  mechanism: string
-}
-
-export interface ContraindicationEntry {
-  drug: string
-  condition: string
-  severity: 'relative' | 'absolute'
-  description: string
-}
-
-export interface AllergyMapping {
-  allergy: string
-  drugClasses: string[]
-  crossReactants: string[]
-}
-
-// Drug interaction database
-export const drugInteractionDatabase: DrugInteractionEntry[] = [
-  // PDE5 inhibitors interactions
+// Local fallback data (used when Supabase is not available)
+const localDrugInteractionDatabase: DrugInteractionEntry[] = [
   {
     drug1: 'sildenafil',
     drug2: 'nitroglycerin',
@@ -46,22 +35,6 @@ export const drugInteractionDatabase: DrugInteractionEntry[] = [
     mechanism: 'Both drugs cause vasodilation via different mechanisms'
   },
   {
-    drug1: 'sildenafil',
-    drug2: 'doxazosin',
-    severity: 'major',
-    description: 'May cause severe hypotension',
-    mechanism: 'Both drugs lower blood pressure'
-  },
-  {
-    drug1: 'sildenafil',
-    drug2: 'tamsulosin',
-    severity: 'major',
-    description: 'May cause orthostatic hypotension',
-    mechanism: 'Both drugs affect blood pressure through different mechanisms'
-  },
-  
-  // Warfarin interactions
-  {
     drug1: 'warfarin',
     drug2: 'aspirin',
     severity: 'major',
@@ -76,15 +49,6 @@ export const drugInteractionDatabase: DrugInteractionEntry[] = [
     mechanism: 'NSAIDs inhibit platelet function and can cause GI ulcers'
   },
   {
-    drug1: 'warfarin',
-    drug2: 'naproxen',
-    severity: 'major',
-    description: 'Significantly increased risk of GI bleeding',
-    mechanism: 'NSAIDs inhibit platelet function and can cause GI ulcers'
-  },
-  
-  // SSRI interactions
-  {
     drug1: 'sertraline',
     drug2: 'sumatriptan',
     severity: 'major',
@@ -92,36 +56,11 @@ export const drugInteractionDatabase: DrugInteractionEntry[] = [
     mechanism: 'Both drugs increase serotonin activity'
   },
   {
-    drug1: 'fluoxetine',
-    drug2: 'tramadol',
-    severity: 'major',
-    description: 'Risk of serotonin syndrome and seizures',
-    mechanism: 'Both drugs affect serotonin reuptake'
-  },
-  
-  // Metformin interactions
-  {
     drug1: 'metformin',
     drug2: 'contrast dye',
     severity: 'major',
     description: 'Risk of lactic acidosis',
     mechanism: 'Contrast can cause acute kidney injury, impairing metformin clearance'
-  },
-  
-  // Heart medications
-  {
-    drug1: 'metoprolol',
-    drug2: 'verapamil',
-    severity: 'major',
-    description: 'Risk of severe bradycardia and heart block',
-    mechanism: 'Both drugs slow AV node conduction'
-  },
-  {
-    drug1: 'carvedilol',
-    drug2: 'diltiazem',
-    severity: 'major',
-    description: 'Risk of severe bradycardia and heart block',
-    mechanism: 'Both drugs slow AV node conduction'
   },
   {
     drug1: 'lisinopril',
@@ -130,8 +69,6 @@ export const drugInteractionDatabase: DrugInteractionEntry[] = [
     description: 'Risk of hyperkalemia',
     mechanism: 'Both drugs can increase potassium levels'
   },
-  
-  // Clopidogrel
   {
     drug1: 'clopidogrel',
     drug2: 'omeprazole',
@@ -139,8 +76,6 @@ export const drugInteractionDatabase: DrugInteractionEntry[] = [
     description: 'Reduced antiplatelet effect of clopidogrel',
     mechanism: 'Omeprazole inhibits CYP2C19 needed for clopidogrel activation'
   },
-  
-  // Statin interactions
   {
     drug1: 'simvastatin',
     drug2: 'gemfibrozil',
@@ -148,15 +83,6 @@ export const drugInteractionDatabase: DrugInteractionEntry[] = [
     description: 'Increased risk of myopathy and rhabdomyolysis',
     mechanism: 'Gemfibrozil inhibits statin metabolism'
   },
-  {
-    drug1: 'atorvastatin',
-    drug2: 'clarithromycin',
-    severity: 'major',
-    description: 'Increased statin levels, risk of myopathy',
-    mechanism: 'CYP3A4 inhibition increases statin exposure'
-  },
-  
-  // Moderate interactions
   {
     drug1: 'lisinopril',
     drug2: 'ibuprofen',
@@ -170,19 +96,10 @@ export const drugInteractionDatabase: DrugInteractionEntry[] = [
     severity: 'moderate',
     description: 'Reduced levothyroxine absorption',
     mechanism: 'Calcium binds to levothyroxine in GI tract'
-  },
-  {
-    drug1: 'metformin',
-    drug2: 'alcohol',
-    severity: 'moderate',
-    description: 'Increased risk of lactic acidosis',
-    mechanism: 'Alcohol impairs lactate metabolism'
   }
 ]
 
-// Contraindication database
-export const contraindicationDatabase: ContraindicationEntry[] = [
-  // PDE5 inhibitors
+const localContraindicationDatabase: ContraindicationEntry[] = [
   {
     drug: 'sildenafil',
     condition: 'recent myocardial infarction',
@@ -202,67 +119,23 @@ export const contraindicationDatabase: ContraindicationEntry[] = [
     description: 'Cannot tolerate hemodynamic changes'
   },
   {
-    drug: 'sildenafil',
-    condition: 'severe hypotension',
-    severity: 'absolute',
-    description: 'Further blood pressure reduction is dangerous'
-  },
-  {
-    drug: 'tadalafil',
-    condition: 'coronary artery disease',
-    severity: 'relative',
-    description: 'Use with caution, assess cardiovascular risk'
-  },
-  
-  // Finasteride
-  {
     drug: 'finasteride',
     condition: 'pregnancy',
     severity: 'absolute',
-    description: 'Causes birth defects in male fetuses - women should not even handle crushed tablets'
+    description: 'Causes birth defects in male fetuses'
   },
-  {
-    drug: 'finasteride',
-    condition: 'liver disease',
-    severity: 'relative',
-    description: 'Metabolized by liver, may accumulate'
-  },
-  
-  // GLP-1 agonists
   {
     drug: 'semaglutide',
     condition: 'medullary thyroid carcinoma',
     severity: 'absolute',
-    description: 'GLP-1 agonists associated with thyroid C-cell tumors in rodents'
+    description: 'GLP-1 agonists associated with thyroid C-cell tumors'
   },
-  {
-    drug: 'semaglutide',
-    condition: 'MEN2 syndrome',
-    severity: 'absolute',
-    description: 'High risk of medullary thyroid carcinoma'
-  },
-  {
-    drug: 'semaglutide',
-    condition: 'pancreatitis',
-    severity: 'relative',
-    description: 'May increase pancreatitis risk'
-  },
-  
-  // Metformin
   {
     drug: 'metformin',
     condition: 'chronic kidney disease stage 4-5',
     severity: 'absolute',
     description: 'Risk of lactic acidosis when GFR <30'
   },
-  {
-    drug: 'metformin',
-    condition: 'lactic acidosis history',
-    severity: 'absolute',
-    description: 'Prior lactic acidosis is a contraindication'
-  },
-  
-  // ACE inhibitors
   {
     drug: 'lisinopril',
     condition: 'angioedema history',
@@ -271,29 +144,15 @@ export const contraindicationDatabase: ContraindicationEntry[] = [
   },
   {
     drug: 'lisinopril',
-    condition: 'bilateral renal artery stenosis',
-    severity: 'absolute',
-    description: 'Can cause acute renal failure'
-  },
-  {
-    drug: 'lisinopril',
     condition: 'pregnancy',
     severity: 'absolute',
     description: 'Fetotoxic - causes fetal renal failure'
   },
-  
-  // Beta blockers
   {
     drug: 'metoprolol',
     condition: 'severe bradycardia',
     severity: 'absolute',
     description: 'Will worsen bradycardia'
-  },
-  {
-    drug: 'metoprolol',
-    condition: 'decompensated heart failure',
-    severity: 'absolute',
-    description: 'Can precipitate cardiogenic shock'
   },
   {
     drug: 'metoprolol',
@@ -303,66 +162,110 @@ export const contraindicationDatabase: ContraindicationEntry[] = [
   }
 ]
 
-// Allergy cross-reactivity mapping
-export const allergyMappings: AllergyMapping[] = [
+const localAllergyMappings: AllergyMappingEntry[] = [
   {
     allergy: 'penicillin',
-    drugClasses: ['penicillins', 'aminopenicillins'],
-    crossReactants: ['amoxicillin', 'ampicillin', 'piperacillin', 'cephalosporins (1-10% cross-reactivity)']
+    drug_classes: ['penicillins', 'aminopenicillins'],
+    cross_reactants: ['amoxicillin', 'ampicillin', 'piperacillin', 'cephalosporins (1-10% cross-reactivity)']
   },
   {
     allergy: 'sulfa drugs',
-    drugClasses: ['sulfonamide antibiotics'],
-    crossReactants: ['sulfamethoxazole', 'sulfasalazine', 'possibly thiazide diuretics', 'possibly loop diuretics', 'possibly sulfonylureas']
+    drug_classes: ['sulfonamide antibiotics'],
+    cross_reactants: ['sulfamethoxazole', 'sulfasalazine', 'possibly thiazide diuretics', 'possibly sulfonylureas']
   },
   {
     allergy: 'aspirin',
-    drugClasses: ['NSAIDs', 'salicylates'],
-    crossReactants: ['ibuprofen', 'naproxen', 'ketorolac', 'meloxicam', 'celecoxib (lower risk)']
+    drug_classes: ['NSAIDs', 'salicylates'],
+    cross_reactants: ['ibuprofen', 'naproxen', 'ketorolac', 'meloxicam', 'celecoxib (lower risk)']
   },
   {
     allergy: 'nsaids',
-    drugClasses: ['NSAIDs'],
-    crossReactants: ['aspirin', 'ibuprofen', 'naproxen', 'meloxicam', 'ketorolac']
+    drug_classes: ['NSAIDs'],
+    cross_reactants: ['aspirin', 'ibuprofen', 'naproxen', 'meloxicam', 'ketorolac']
   },
   {
     allergy: 'ace inhibitors',
-    drugClasses: ['ACE inhibitors'],
-    crossReactants: ['lisinopril', 'enalapril', 'ramipril', 'benazepril', 'ARBs (use with caution)']
+    drug_classes: ['ACE inhibitors'],
+    cross_reactants: ['lisinopril', 'enalapril', 'ramipril', 'benazepril', 'ARBs (use with caution)']
   },
   {
     allergy: 'codeine',
-    drugClasses: ['opioids'],
-    crossReactants: ['morphine', 'hydrocodone', 'oxycodone', 'tramadol (may be safer)']
-  },
-  {
-    allergy: 'morphine',
-    drugClasses: ['opioids'],
-    crossReactants: ['codeine', 'hydrocodone', 'oxycodone', 'fentanyl (may be safer)']
+    drug_classes: ['opioids'],
+    cross_reactants: ['morphine', 'hydrocodone', 'oxycodone', 'tramadol (may be safer)']
   },
   {
     allergy: 'iodine',
-    drugClasses: ['iodine-containing compounds'],
-    crossReactants: ['contrast dye', 'amiodarone', 'povidone-iodine']
+    drug_classes: ['iodine-containing compounds'],
+    cross_reactants: ['contrast dye', 'amiodarone', 'povidone-iodine']
   },
   {
     allergy: 'contrast dye',
-    drugClasses: ['radiographic contrast'],
-    crossReactants: ['all iodinated contrast agents']
+    drug_classes: ['radiographic contrast'],
+    cross_reactants: ['all iodinated contrast agents']
   }
 ]
 
-// Helper functions
-export function checkDrugInteractions(medications: string[]): DrugInteractionEntry[] {
+// Get drug interactions (from Supabase or local fallback)
+async function getDrugInteractionData(): Promise<DrugInteractionEntry[]> {
+  // First check cache
+  const cached = getCachedDrugInteractions()
+  if (cached && cached.length > 0) {
+    return cached
+  }
+
+  // Try to fetch from Supabase
+  const supabaseData = await fetchDrugInteractions()
+  if (supabaseData.length > 0) {
+    return supabaseData
+  }
+
+  // Fallback to local data
+  return localDrugInteractionDatabase
+}
+
+// Get contraindications (from Supabase or local fallback)
+async function getContraindicationData(): Promise<ContraindicationEntry[]> {
+  const cached = getCachedContraindications()
+  if (cached && cached.length > 0) {
+    return cached
+  }
+
+  const supabaseData = await fetchContraindications()
+  if (supabaseData.length > 0) {
+    return supabaseData
+  }
+
+  return localContraindicationDatabase
+}
+
+// Get allergy mappings (from Supabase or local fallback)
+async function getAllergyMappingData(): Promise<AllergyMappingEntry[]> {
+  const cached = getCachedAllergyMappings()
+  if (cached && cached.length > 0) {
+    return cached
+  }
+
+  const supabaseData = await fetchAllergyMappings()
+  if (supabaseData.length > 0) {
+    return supabaseData
+  }
+
+  return localAllergyMappings
+}
+
+// ==================== Check Functions ====================
+
+export async function checkDrugInteractions(medications: string[]): Promise<DrugInteractionEntry[]> {
   const normalizedMeds = medications.map(m => m.toLowerCase().split(' ')[0])
   const interactions: DrugInteractionEntry[] = []
+  const database = await getDrugInteractionData()
   
   for (let i = 0; i < normalizedMeds.length; i++) {
     for (let j = i + 1; j < normalizedMeds.length; j++) {
       const med1 = normalizedMeds[i]
       const med2 = normalizedMeds[j]
       
-      const interaction = drugInteractionDatabase.find(entry => 
+      const interaction = database.find(entry => 
         (entry.drug1.toLowerCase().includes(med1) || med1.includes(entry.drug1.toLowerCase())) &&
         (entry.drug2.toLowerCase().includes(med2) || med2.includes(entry.drug2.toLowerCase())) ||
         (entry.drug1.toLowerCase().includes(med2) || med2.includes(entry.drug1.toLowerCase())) &&
@@ -378,11 +281,12 @@ export function checkDrugInteractions(medications: string[]): DrugInteractionEnt
   return interactions
 }
 
-export function checkContraindications(drug: string, conditions: string[]): ContraindicationEntry[] {
+export async function checkContraindications(drug: string, conditions: string[]): Promise<ContraindicationEntry[]> {
   const normalizedDrug = drug.toLowerCase()
   const normalizedConditions = conditions.map(c => c.toLowerCase())
+  const database = await getContraindicationData()
   
-  return contraindicationDatabase.filter(entry => {
+  return database.filter(entry => {
     const drugMatch = normalizedDrug.includes(entry.drug.toLowerCase()) || 
                       entry.drug.toLowerCase().includes(normalizedDrug)
     const conditionMatch = normalizedConditions.some(c => 
@@ -394,11 +298,12 @@ export function checkContraindications(drug: string, conditions: string[]): Cont
   })
 }
 
-export function checkAllergyConflicts(allergies: string[], proposedDrug: string): AllergyMapping[] {
+export async function checkAllergyConflicts(allergies: string[], proposedDrug: string): Promise<AllergyMappingEntry[]> {
   const normalizedAllergies = allergies.map(a => a.toLowerCase())
   const normalizedDrug = proposedDrug.toLowerCase()
+  const database = await getAllergyMappingData()
   
-  return allergyMappings.filter(mapping => {
+  return database.filter(mapping => {
     const hasAllergy = normalizedAllergies.some(a => 
       a.includes(mapping.allergy.toLowerCase()) || 
       mapping.allergy.toLowerCase().includes(a)
@@ -406,7 +311,7 @@ export function checkAllergyConflicts(allergies: string[], proposedDrug: string)
     
     if (!hasAllergy) return false
     
-    const drugConflict = mapping.crossReactants.some(r => 
+    const drugConflict = mapping.cross_reactants.some(r => 
       normalizedDrug.includes(r.toLowerCase()) || 
       r.toLowerCase().includes(normalizedDrug)
     )
@@ -414,6 +319,76 @@ export function checkAllergyConflicts(allergies: string[], proposedDrug: string)
     return drugConflict
   })
 }
+
+// ==================== Sync Check Functions (for immediate use) ====================
+// These use cached data or local fallback synchronously
+
+export function checkDrugInteractionsSync(medications: string[]): DrugInteractionEntry[] {
+  const normalizedMeds = medications.map(m => m.toLowerCase().split(' ')[0])
+  const interactions: DrugInteractionEntry[] = []
+  const database = getCachedDrugInteractions() || localDrugInteractionDatabase
+  
+  for (let i = 0; i < normalizedMeds.length; i++) {
+    for (let j = i + 1; j < normalizedMeds.length; j++) {
+      const med1 = normalizedMeds[i]
+      const med2 = normalizedMeds[j]
+      
+      const interaction = database.find(entry => 
+        (entry.drug1.toLowerCase().includes(med1) || med1.includes(entry.drug1.toLowerCase())) &&
+        (entry.drug2.toLowerCase().includes(med2) || med2.includes(entry.drug2.toLowerCase())) ||
+        (entry.drug1.toLowerCase().includes(med2) || med2.includes(entry.drug1.toLowerCase())) &&
+        (entry.drug2.toLowerCase().includes(med1) || med1.includes(entry.drug2.toLowerCase()))
+      )
+      
+      if (interaction) {
+        interactions.push(interaction)
+      }
+    }
+  }
+  
+  return interactions
+}
+
+export function checkContraindicationsSync(drug: string, conditions: string[]): ContraindicationEntry[] {
+  const normalizedDrug = drug.toLowerCase()
+  const normalizedConditions = conditions.map(c => c.toLowerCase())
+  const database = getCachedContraindications() || localContraindicationDatabase
+  
+  return database.filter(entry => {
+    const drugMatch = normalizedDrug.includes(entry.drug.toLowerCase()) || 
+                      entry.drug.toLowerCase().includes(normalizedDrug)
+    const conditionMatch = normalizedConditions.some(c => 
+      c.includes(entry.condition.toLowerCase()) || 
+      entry.condition.toLowerCase().includes(c)
+    )
+    
+    return drugMatch && conditionMatch
+  })
+}
+
+export function checkAllergyConflictsSync(allergies: string[], proposedDrug: string): AllergyMappingEntry[] {
+  const normalizedAllergies = allergies.map(a => a.toLowerCase())
+  const normalizedDrug = proposedDrug.toLowerCase()
+  const database = getCachedAllergyMappings() || localAllergyMappings
+  
+  return database.filter(mapping => {
+    const hasAllergy = normalizedAllergies.some(a => 
+      a.includes(mapping.allergy.toLowerCase()) || 
+      mapping.allergy.toLowerCase().includes(a)
+    )
+    
+    if (!hasAllergy) return false
+    
+    const drugConflict = mapping.cross_reactants.some(r => 
+      normalizedDrug.includes(r.toLowerCase()) || 
+      r.toLowerCase().includes(normalizedDrug)
+    )
+    
+    return drugConflict
+  })
+}
+
+// ==================== Utility Functions ====================
 
 export function getDrugClassInfo(drugName: string): string | null {
   const drugClasses: Record<string, string[]> = {
@@ -445,3 +420,12 @@ export function getDrugClassInfo(drugName: string): string | null {
   return null
 }
 
+// Pre-load data from Supabase on module import
+export async function initializeMedicalDatabase(): Promise<void> {
+  await Promise.all([
+    getDrugInteractionData(),
+    getContraindicationData(),
+    getAllergyMappingData(),
+  ])
+  console.log('Medical database initialized')
+}

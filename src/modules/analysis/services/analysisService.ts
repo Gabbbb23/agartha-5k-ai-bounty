@@ -2,9 +2,9 @@ import { PatientData } from "@/shared/types/patient";
 import { AnalysisResult, AnalysisResultSchema } from "@/shared/types/analysis";
 import { buildMedicalSystemPrompt, buildPatientContext } from "./medicalPrompt";
 import {
-  checkDrugInteractions,
-  checkContraindications,
-  checkAllergyConflicts,
+  checkDrugInteractionsSync,
+  checkContraindicationsSync,
+  checkAllergyConflictsSync,
 } from "./drugDatabase";
 
 // Google Gemini API endpoint - using gemini-2.0-flash
@@ -127,7 +127,7 @@ function enrichAnalysisWithDatabase(
     analysis.primaryRecommendation.medication,
   ];
 
-  const dbInteractions = checkDrugInteractions(allMeds);
+  const dbInteractions = checkDrugInteractionsSync(allMeds);
 
   // Add any database interactions not already in analysis
   for (const dbInt of dbInteractions) {
@@ -149,7 +149,7 @@ function enrichAnalysisWithDatabase(
   }
 
   // Check contraindications
-  const dbContraindications = checkContraindications(
+  const dbContraindications = checkContraindicationsSync(
     analysis.primaryRecommendation.medication,
     patient.conditions
   );
@@ -173,7 +173,7 @@ function enrichAnalysisWithDatabase(
   }
 
   // Check allergy conflicts
-  const allergyConflicts = checkAllergyConflicts(
+  const allergyConflicts = checkAllergyConflictsSync(
     patient.allergies,
     analysis.primaryRecommendation.medication
   );
@@ -189,7 +189,7 @@ function enrichAnalysisWithDatabase(
         condition: `Allergy to ${conflict.allergy}`,
         severity: "absolute",
         description: `Patient has allergy to ${conflict.allergy} which may cross-react with ${analysis.primaryRecommendation.medication}`,
-        recommendation: `Consider alternative medication. Cross-reactants: ${conflict.crossReactants.join(
+        recommendation: `Consider alternative medication. Cross-reactants: ${conflict.cross_reactants.join(
           ", "
         )}`,
       });

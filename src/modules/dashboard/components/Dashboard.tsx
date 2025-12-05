@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { AnalysisResult } from '@/shared/types/analysis'
+import { PatientData, calculateBMI, getBMICategory } from '@/shared/types/patient'
 import { useAppStore } from '@/shared/store/appStore'
 import { RiskIndicator } from './RiskIndicator'
 import { TreatmentCard } from './TreatmentCard'
@@ -8,13 +9,21 @@ import { AlternativesList } from './AlternativesList'
 import { RecommendationsList } from './RecommendationsList'
 import { DoctorActions } from './DoctorActions'
 import { AuditLog } from './AuditLog'
+import { ExportButton } from '@/shared/components/ExportButton'
+import { exportAnalysisToJson, exportAnalysisToCsv } from '@/shared/services/exportService'
 import { 
   AlertTriangle, 
   FileText, 
   Pill, 
   Stethoscope, 
   History,
-  ChevronDown
+  ChevronDown,
+  User,
+  Heart,
+  Activity,
+  Cigarette,
+  Wine,
+  Dumbbell
 } from 'lucide-react'
 
 interface DashboardProps {
@@ -51,10 +60,29 @@ export function Dashboard({ analysisResult }: DashboardProps) {
             {patientData?.firstName} {patientData?.lastName} • {patientData?.primaryComplaint}
           </p>
         </div>
-        <RiskIndicator 
-          level={analysisResult.overallRiskLevel}
-          score={analysisResult.riskScore}
-        />
+        <div className="flex items-center gap-3">
+          {patientData && (
+            <ExportButton
+              label="Export Analysis"
+              options={[
+                {
+                  label: 'Export as JSON',
+                  format: 'json',
+                  onClick: () => exportAnalysisToJson(patientData, analysisResult),
+                },
+                {
+                  label: 'Export as CSV',
+                  format: 'csv',
+                  onClick: () => exportAnalysisToCsv(patientData, analysisResult),
+                },
+              ]}
+            />
+          )}
+          <RiskIndicator 
+            level={analysisResult.overallRiskLevel}
+            score={analysisResult.riskScore}
+          />
+        </div>
       </div>
 
       {/* Summary Assessment */}
@@ -73,6 +101,19 @@ export function Dashboard({ analysisResult }: DashboardProps) {
           </div>
         </div>
       </div>
+
+      {/* Patient Intake Details */}
+      {patientData && (
+        <CollapsibleSection
+          id="patient-details"
+          title="Patient Intake Details"
+          icon={User}
+          expanded={expandedSections.has('patient-details')}
+          onToggle={() => toggleSection('patient-details')}
+        >
+          <PatientDetailsView patient={patientData} />
+        </CollapsibleSection>
+      )}
 
       {/* Safety Alerts - Always show first if there are issues */}
       {(analysisResult.drugInteractions.length > 0 || 
@@ -232,6 +273,260 @@ function CollapsibleSection({
           {children}
         </div>
       )}
+    </div>
+  )
+}
+
+// Patient Details View component
+interface PatientDetailsViewProps {
+  patient: PatientData
+}
+
+function PatientDetailsView({ patient }: PatientDetailsViewProps) {
+  const bmi = calculateBMI(patient.healthMetrics.weight, patient.healthMetrics.height)
+  const bmiCategory = getBMICategory(bmi)
+
+  const smokingLabels: Record<string, string> = {
+    never: 'Never smoked',
+    former: 'Former smoker',
+    current: 'Current smoker',
+  }
+
+  const alcoholLabels: Record<string, string> = {
+    none: 'None',
+    occasional: 'Occasional (1-2/week)',
+    moderate: 'Moderate (3-7/week)',
+    heavy: 'Heavy (8+/week)',
+  }
+
+  const exerciseLabels: Record<string, string> = {
+    sedentary: 'Sedentary',
+    light: 'Light (1-2 days/week)',
+    moderate: 'Moderate (3-4 days/week)',
+    active: 'Active (5+ days/week)',
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Demographics */}
+      <div>
+        <h4 className="text-sm font-semibold text-clinical-accent mb-3 flex items-center gap-2">
+          <User className="w-4 h-4" />
+          Demographics
+        </h4>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-clinical-secondary/30 rounded-lg p-3">
+            <span className="text-xs text-clinical-muted block">Full Name</span>
+            <span className="text-white font-medium">{patient.firstName} {patient.lastName}</span>
+          </div>
+          <div className="bg-clinical-secondary/30 rounded-lg p-3">
+            <span className="text-xs text-clinical-muted block">Date of Birth</span>
+            <span className="text-white font-medium">{patient.dateOfBirth}</span>
+          </div>
+          <div className="bg-clinical-secondary/30 rounded-lg p-3">
+            <span className="text-xs text-clinical-muted block">Age</span>
+            <span className="text-white font-medium">{patient.healthMetrics.age} years</span>
+          </div>
+          <div className="bg-clinical-secondary/30 rounded-lg p-3">
+            <span className="text-xs text-clinical-muted block">Sex</span>
+            <span className="text-white font-medium capitalize">{patient.sex}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Health Metrics */}
+      <div>
+        <h4 className="text-sm font-semibold text-cyan-400 mb-3 flex items-center gap-2">
+          <Activity className="w-4 h-4" />
+          Health Metrics
+        </h4>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-clinical-secondary/30 rounded-lg p-3">
+            <span className="text-xs text-clinical-muted block">Weight</span>
+            <span className="text-white font-medium">{patient.healthMetrics.weight} kg</span>
+          </div>
+          <div className="bg-clinical-secondary/30 rounded-lg p-3">
+            <span className="text-xs text-clinical-muted block">Height</span>
+            <span className="text-white font-medium">{patient.healthMetrics.height} cm</span>
+          </div>
+          <div className="bg-clinical-secondary/30 rounded-lg p-3">
+            <span className="text-xs text-clinical-muted block">BMI</span>
+            <span className={`font-medium ${
+              bmi < 18.5 || bmi >= 30 ? 'text-clinical-danger' : 
+              bmi >= 25 ? 'text-clinical-warning' : 'text-clinical-success'
+            }`}>{bmi} ({bmiCategory})</span>
+          </div>
+          <div className="bg-clinical-secondary/30 rounded-lg p-3">
+            <span className="text-xs text-clinical-muted block">Blood Pressure</span>
+            <span className={`font-medium ${
+              patient.healthMetrics.bloodPressureSystolic >= 140 || patient.healthMetrics.bloodPressureDiastolic >= 90
+                ? 'text-clinical-danger' : 'text-white'
+            }`}>
+              {patient.healthMetrics.bloodPressureSystolic}/{patient.healthMetrics.bloodPressureDiastolic} mmHg
+            </span>
+          </div>
+          {patient.healthMetrics.heartRate && (
+            <div className="bg-clinical-secondary/30 rounded-lg p-3">
+              <span className="text-xs text-clinical-muted block">Heart Rate</span>
+              <span className="text-white font-medium">{patient.healthMetrics.heartRate} bpm</span>
+            </div>
+          )}
+          {patient.healthMetrics.bloodGlucose && (
+            <div className="bg-clinical-secondary/30 rounded-lg p-3">
+              <span className="text-xs text-clinical-muted block">Blood Glucose</span>
+              <span className="text-white font-medium">{patient.healthMetrics.bloodGlucose} mg/dL</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Medical History */}
+      <div>
+        <h4 className="text-sm font-semibold text-purple-400 mb-3 flex items-center gap-2">
+          <Heart className="w-4 h-4" />
+          Medical History
+        </h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-clinical-secondary/30 rounded-lg p-3">
+            <span className="text-xs text-clinical-muted block mb-2">Conditions</span>
+            {patient.conditions.length > 0 ? (
+              <div className="flex flex-wrap gap-1">
+                {patient.conditions.map((condition, i) => (
+                  <span key={i} className="px-2 py-1 bg-purple-500/20 text-purple-300 rounded text-xs">
+                    {condition}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <span className="text-clinical-muted text-sm">None reported</span>
+            )}
+          </div>
+          <div className="bg-clinical-secondary/30 rounded-lg p-3">
+            <span className="text-xs text-clinical-muted block mb-2">Allergies</span>
+            {patient.allergies.length > 0 ? (
+              <div className="flex flex-wrap gap-1">
+                {patient.allergies.map((allergy, i) => (
+                  <span key={i} className="px-2 py-1 bg-clinical-danger/20 text-red-300 rounded text-xs">
+                    {allergy}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <span className="text-clinical-success text-sm">NKDA</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Current Medications */}
+      <div>
+        <h4 className="text-sm font-semibold text-emerald-400 mb-3 flex items-center gap-2">
+          <Pill className="w-4 h-4" />
+          Current Medications ({patient.currentMedications.length})
+        </h4>
+        {patient.currentMedications.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {patient.currentMedications.map((med, i) => (
+              <div key={i} className="bg-clinical-secondary/30 rounded-lg p-3 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center shrink-0">
+                  <Pill className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div>
+                  <span className="text-white font-medium block">{med.name}</span>
+                  <span className="text-xs text-clinical-muted">{med.dosage} • {med.frequency}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-clinical-muted text-sm bg-clinical-secondary/30 rounded-lg p-3">No current medications</p>
+        )}
+      </div>
+
+      {/* Lifestyle */}
+      <div>
+        <h4 className="text-sm font-semibold text-pink-400 mb-3 flex items-center gap-2">
+          <Heart className="w-4 h-4" />
+          Lifestyle Factors
+        </h4>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-clinical-secondary/30 rounded-lg p-3">
+            <span className="text-xs text-clinical-muted block flex items-center gap-1">
+              <Cigarette className="w-3 h-3" /> Smoking
+            </span>
+            <span className={`font-medium ${
+              patient.lifestyle.smokingStatus === 'current' ? 'text-clinical-danger' :
+              patient.lifestyle.smokingStatus === 'former' ? 'text-clinical-warning' : 'text-clinical-success'
+            }`}>
+              {smokingLabels[patient.lifestyle.smokingStatus]}
+            </span>
+          </div>
+          <div className="bg-clinical-secondary/30 rounded-lg p-3">
+            <span className="text-xs text-clinical-muted block flex items-center gap-1">
+              <Wine className="w-3 h-3" /> Alcohol
+            </span>
+            <span className={`font-medium ${
+              patient.lifestyle.alcoholUse === 'heavy' ? 'text-clinical-danger' :
+              patient.lifestyle.alcoholUse === 'moderate' ? 'text-clinical-warning' : 'text-white'
+            }`}>
+              {alcoholLabels[patient.lifestyle.alcoholUse]}
+            </span>
+          </div>
+          <div className="bg-clinical-secondary/30 rounded-lg p-3">
+            <span className="text-xs text-clinical-muted block flex items-center gap-1">
+              <Dumbbell className="w-3 h-3" /> Exercise
+            </span>
+            <span className="text-white font-medium">
+              {exerciseLabels[patient.lifestyle.exerciseFrequency]}
+            </span>
+          </div>
+          {patient.lifestyle.sleepHours && (
+            <div className="bg-clinical-secondary/30 rounded-lg p-3">
+              <span className="text-xs text-clinical-muted block">Sleep</span>
+              <span className={`font-medium ${
+                patient.lifestyle.sleepHours < 6 ? 'text-clinical-warning' : 'text-white'
+              }`}>
+                {patient.lifestyle.sleepHours} hours/night
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Primary Complaint */}
+      <div>
+        <h4 className="text-sm font-semibold text-orange-400 mb-3 flex items-center gap-2">
+          <Stethoscope className="w-4 h-4" />
+          Primary Complaint
+        </h4>
+        <div className="bg-clinical-secondary/30 rounded-lg p-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <span className="text-xs text-clinical-muted block">Complaint</span>
+              <span className="text-white font-medium">{patient.primaryComplaint}</span>
+            </div>
+            <div>
+              <span className="text-xs text-clinical-muted block">Duration</span>
+              <span className="text-white font-medium">{patient.complaintDuration}</span>
+            </div>
+            <div>
+              <span className="text-xs text-clinical-muted block">Severity</span>
+              <span className={`font-medium capitalize ${
+                patient.complaintSeverity === 'severe' ? 'text-clinical-danger' :
+                patient.complaintSeverity === 'moderate' ? 'text-clinical-warning' : 'text-clinical-success'
+              }`}>
+                {patient.complaintSeverity}
+              </span>
+            </div>
+          </div>
+          {patient.additionalNotes && (
+            <div className="mt-3 pt-3 border-t border-white/10">
+              <span className="text-xs text-clinical-muted block mb-1">Additional Notes</span>
+              <p className="text-gray-300 text-sm">{patient.additionalNotes}</p>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

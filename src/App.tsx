@@ -7,6 +7,7 @@ import { Header } from '@/shared/components/Header'
 import { SamplePatientSelector } from '@/modules/intake/components/SamplePatientSelector'
 import { TabNavigation, TabId } from '@/shared/components/TabNavigation'
 import { AuditLogPage } from '@/modules/audit/components/AuditLogPage'
+import { MedicalDatabaseManager } from '@/modules/medical-database/components/MedicalDatabaseManager'
 
 function App() {
   const { currentStep, patientData, analysisResult } = useAppStore()
@@ -22,7 +23,7 @@ function App() {
         </div>
 
         {/* Tab Content */}
-        {activeTab === 'workflow' ? (
+        {activeTab === 'workflow' && (
           <>
             {/* Progress indicator */}
             <div className="flex items-center justify-center gap-2 md:gap-4 mb-8">
@@ -69,9 +70,17 @@ function App() {
               )}
             </div>
           </>
-        ) : (
+        )}
+
+        {activeTab === 'audit' && (
           <div className="animate-fade-in">
             <AuditLogPage />
+          </div>
+        )}
+
+        {activeTab === 'medical-db' && (
+          <div className="animate-fade-in">
+            <MedicalDatabaseManager />
           </div>
         )}
       </main>
