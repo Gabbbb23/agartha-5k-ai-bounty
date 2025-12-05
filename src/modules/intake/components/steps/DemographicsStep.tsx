@@ -6,8 +6,36 @@ interface DemographicsStepProps {
   form: UseFormReturn<PatientData>
 }
 
+// Helper component for field labels
+function FieldLabel({ 
+  children, 
+  required = false,
+  icon: Icon
+}: { 
+  children: React.ReactNode
+  required?: boolean
+  icon?: React.ComponentType<{ className?: string }>
+}) {
+  return (
+    <label className="block text-sm font-medium text-gray-300 mb-2">
+      <span className="flex items-center gap-2">
+        {Icon && <Icon className="w-4 h-4 text-clinical-muted" />}
+        {children}
+        {required ? (
+          <span className="text-clinical-danger text-xs">*Required</span>
+        ) : (
+          <span className="text-clinical-muted text-xs">(Optional)</span>
+        )}
+      </span>
+    </label>
+  )
+}
+
 export function DemographicsStep({ form }: DemographicsStepProps) {
-  const { register, formState: { errors } } = form
+  const { register, formState: { errors }, watch } = form
+  const firstName = watch('firstName')
+  const lastName = watch('lastName')
+  const dateOfBirth = watch('dateOfBirth')
 
   return (
     <div className="space-y-6">
@@ -21,20 +49,26 @@ export function DemographicsStep({ form }: DemographicsStepProps) {
         </div>
       </div>
 
+      {/* Required fields notice */}
+      <div className="p-3 rounded-lg bg-clinical-accent/10 border border-clinical-accent/20">
+        <p className="text-sm text-blue-300">
+          <span className="text-clinical-danger">*</span> All fields in this section are required to proceed.
+        </p>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* First Name */}
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-300">
-            First Name <span className="text-clinical-danger">*</span>
-          </label>
+        <div className="space-y-1">
+          <FieldLabel required>First Name</FieldLabel>
           <input
             {...register('firstName')}
             type="text"
             placeholder="Enter first name"
             className={`
               w-full px-4 py-3 rounded-xl bg-clinical-secondary border 
-              ${errors.firstName ? 'border-clinical-danger' : 'border-white/10'}
+              ${errors.firstName || !firstName ? 'border-clinical-danger/50' : 'border-clinical-success/50'}
               text-white placeholder-clinical-muted focus:outline-none
+              ${firstName ? 'ring-1 ring-clinical-success/30' : ''}
             `}
           />
           {errors.firstName && (
@@ -43,18 +77,17 @@ export function DemographicsStep({ form }: DemographicsStepProps) {
         </div>
 
         {/* Last Name */}
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-300">
-            Last Name <span className="text-clinical-danger">*</span>
-          </label>
+        <div className="space-y-1">
+          <FieldLabel required>Last Name</FieldLabel>
           <input
             {...register('lastName')}
             type="text"
             placeholder="Enter last name"
             className={`
               w-full px-4 py-3 rounded-xl bg-clinical-secondary border 
-              ${errors.lastName ? 'border-clinical-danger' : 'border-white/10'}
+              ${errors.lastName || !lastName ? 'border-clinical-danger/50' : 'border-clinical-success/50'}
               text-white placeholder-clinical-muted focus:outline-none
+              ${lastName ? 'ring-1 ring-clinical-success/30' : ''}
             `}
           />
           {errors.lastName && (
@@ -63,19 +96,17 @@ export function DemographicsStep({ form }: DemographicsStepProps) {
         </div>
 
         {/* Date of Birth */}
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-300">
-            <Calendar className="w-4 h-4 inline mr-2" />
-            Date of Birth <span className="text-clinical-danger">*</span>
-          </label>
+        <div className="space-y-1">
+          <FieldLabel required icon={Calendar}>Date of Birth</FieldLabel>
           <input
             {...register('dateOfBirth')}
             type="date"
             className={`
               w-full px-4 py-3 rounded-xl bg-clinical-secondary border 
-              ${errors.dateOfBirth ? 'border-clinical-danger' : 'border-white/10'}
+              ${errors.dateOfBirth || !dateOfBirth ? 'border-clinical-danger/50' : 'border-clinical-success/50'}
               text-white focus:outline-none
               [color-scheme:dark]
+              ${dateOfBirth ? 'ring-1 ring-clinical-success/30' : ''}
             `}
           />
           {errors.dateOfBirth && (
@@ -84,17 +115,13 @@ export function DemographicsStep({ form }: DemographicsStepProps) {
         </div>
 
         {/* Sex */}
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-300">
-            <Users className="w-4 h-4 inline mr-2" />
-            Biological Sex <span className="text-clinical-danger">*</span>
-          </label>
+        <div className="space-y-1">
+          <FieldLabel required icon={Users}>Biological Sex</FieldLabel>
           <select
             {...register('sex')}
             className={`
-              w-full px-4 py-3 rounded-xl bg-clinical-secondary border 
-              ${errors.sex ? 'border-clinical-danger' : 'border-white/10'}
-              text-white focus:outline-none cursor-pointer
+              w-full px-4 py-3 rounded-xl bg-clinical-secondary border border-clinical-success/50
+              text-white focus:outline-none cursor-pointer ring-1 ring-clinical-success/30
             `}
           >
             <option value="male">Male</option>
@@ -107,12 +134,11 @@ export function DemographicsStep({ form }: DemographicsStepProps) {
         </div>
       </div>
 
-      <div className="mt-6 p-4 rounded-xl bg-clinical-accent/10 border border-clinical-accent/20">
-        <p className="text-sm text-blue-300">
-          <strong>Note:</strong> All patient information is handled securely and in compliance with healthcare privacy regulations.
+      <div className="mt-6 p-4 rounded-xl bg-clinical-secondary/50 border border-white/10">
+        <p className="text-sm text-clinical-muted">
+          <strong className="text-gray-300">Note:</strong> All patient information is handled securely and in compliance with healthcare privacy regulations.
         </p>
       </div>
     </div>
   )
 }
-

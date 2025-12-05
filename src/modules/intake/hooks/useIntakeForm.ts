@@ -36,8 +36,19 @@ const defaultValues: Partial<PatientData> = {
   additionalNotes: '',
 }
 
+// Define required fields per step for validation
+const stepValidationFields: Record<number, string[]> = {
+  0: ['firstName', 'lastName', 'dateOfBirth', 'sex'], // Demographics - all required
+  1: [], // Medical History - conditions and allergies are optional
+  2: [], // Medications - optional
+  3: ['healthMetrics.age', 'healthMetrics.weight', 'healthMetrics.height', 'healthMetrics.bloodPressureSystolic', 'healthMetrics.bloodPressureDiastolic'], // Health Metrics - core fields required
+  4: ['lifestyle.smokingStatus', 'lifestyle.alcoholUse', 'lifestyle.exerciseFrequency'], // Lifestyle - main fields required
+  5: ['primaryComplaint', 'complaintDuration', 'complaintSeverity'], // Complaint - all required
+}
+
 export function useIntakeForm() {
   const [wizardStep, setWizardStep] = useState(0)
+  const [stepErrors, setStepErrors] = useState<string[]>([])
   const { setPatientData, setCurrentStep } = useAppStore()
 
   const form = useForm<PatientData>({
@@ -46,7 +57,7 @@ export function useIntakeForm() {
     mode: 'onChange',
   })
 
-  const { watch, setValue, getValues, trigger } = form
+  const { watch, setValue, getValues, trigger, formState: { errors } } = form
   const formData = watch()
 
   // Wizard navigation
@@ -63,26 +74,78 @@ export function useIntakeForm() {
   const isFirstStep = wizardStep === 0
   const isLastStep = wizardStep === wizardSteps.length - 1
 
+  // Custom validation for current step
+  const validateCurrentStep = useCallback((): { isValid: boolean; errors: string[] } => {
+    const requiredFields = stepValidationFields[wizardStep] || []
+    const validationErrors: string[] = []
+    
+    for (const field of requiredFields) {
+      const parts = field.split('.')
+      let value: unknown = formData
+      
+      for (const part of parts) {
+        value = (value as Record<string, unknown>)?.[part]
+      }
+      
+      if (value === undefined || value === null || value === '') {
+        const fieldName = parts[parts.length - 1]
+          .replace(/([A-Z])/g, ' $1')
+          .replace(/^./, str => str.toUpperCase())
+        validationErrors.push(`${fieldName} is required`)
+      }
+    }
+    
+    return {
+      isValid: validationErrors.length === 0,
+      errors: validationErrors,
+    }
+  }, [wizardStep, formData])
+
   const nextStep = useCallback(async () => {
+    // First, validate using react-hook-form's trigger
     const fieldsToValidate = currentStepData.fields as (keyof PatientData)[]
-    const isValid = await trigger(fieldsToValidate)
+    await trigger(fieldsToValidate)
+    
+    // Then do our custom validation
+    const { isValid, errors: validationErrors } = validateCurrentStep()
+    setStepErrors(validationErrors)
     
     if (isValid && !isLastStep) {
       setWizardStep((prev) => prev + 1)
+      setStepErrors([])
     }
-  }, [currentStepData, isLastStep, trigger])
+    
+    return isValid
+  }, [currentStepData, isLastStep, trigger, validateCurrentStep])
 
   const prevStep = useCallback(() => {
     if (!isFirstStep) {
       setWizardStep((prev) => prev - 1)
+      setStepErrors([])
     }
   }, [isFirstStep])
 
-  const goToStep = useCallback((step: number) => {
-    if (step >= 0 && step < wizardSteps.length) {
+  const goToStep = useCallback(async (step: number) => {
+    // Only allow going to previous steps freely
+    // For forward navigation, must validate current step first
+    if (step < wizardStep) {
       setWizardStep(step)
+      setStepErrors([])
+    } else if (step > wizardStep) {
+      // Validate current step before allowing forward navigation
+      const { isValid } = validateCurrentStep()
+      if (isValid) {
+        setWizardStep(step)
+        setStepErrors([])
+      }
     }
-  }, [wizardSteps.length])
+  }, [wizardStep, validateCurrentStep])
+
+  // Check if current step is valid (for button state)
+  const isCurrentStepValid = useCallback((): boolean => {
+    const { isValid } = validateCurrentStep()
+    return isValid
+  }, [validateCurrentStep])
 
   // Medication management
   const addMedication = useCallback((medication: Medication) => {
@@ -137,11 +200,14 @@ export function useIntakeForm() {
   return {
     form,
     formData,
+    errors,
+    stepErrors,
     wizardStep,
     wizardSteps,
     currentStepData,
     isFirstStep,
     isLastStep,
+    isCurrentStepValid,
     nextStep,
     prevStep,
     goToStep,
@@ -155,4 +221,3 @@ export function useIntakeForm() {
     onSubmit,
   }
 }
-

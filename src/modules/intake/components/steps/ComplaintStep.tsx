@@ -1,7 +1,7 @@
 import { UseFormReturn } from 'react-hook-form'
 import { PatientData } from '@/shared/types/patient'
 import { primaryComplaints } from '../../constants/samplePatients'
-import { Stethoscope, Clock, AlertCircle, FileText } from 'lucide-react'
+import { Stethoscope, Clock, AlertCircle, FileText, Info } from 'lucide-react'
 
 interface ComplaintStepProps {
   form: UseFormReturn<PatientData>
@@ -11,6 +11,7 @@ export function ComplaintStep({ form }: ComplaintStepProps) {
   const { register, watch, setValue, formState: { errors } } = form
   const primaryComplaint = watch('primaryComplaint')
   const complaintSeverity = watch('complaintSeverity')
+  const complaintDuration = watch('complaintDuration')
 
   const severityOptions = [
     { value: 'mild', label: 'Mild', description: 'Minor discomfort, manageable', color: 'emerald' },
@@ -41,10 +42,18 @@ export function ComplaintStep({ form }: ComplaintStepProps) {
         </div>
       </div>
 
+      {/* Required fields notice */}
+      <div className="p-3 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-start gap-2">
+        <Info className="w-4 h-4 text-orange-400 mt-0.5 shrink-0" />
+        <p className="text-sm text-orange-300">
+          <span className="text-clinical-danger">*</span> Complaint, duration, and severity are all required to proceed with the analysis.
+        </p>
+      </div>
+
       {/* Primary Complaint Selection */}
       <div className="space-y-3">
         <label className="block text-sm font-medium text-gray-300">
-          Primary Complaint <span className="text-clinical-danger">*</span>
+          Primary Complaint <span className="text-clinical-danger text-xs">*Required</span>
         </label>
         
         {/* Quick select common complaints */}
@@ -72,7 +81,7 @@ export function ComplaintStep({ form }: ComplaintStepProps) {
           placeholder="Describe the primary complaint..."
           className={`
             w-full px-4 py-3 rounded-xl bg-clinical-secondary border 
-            ${errors.primaryComplaint ? 'border-clinical-danger' : 'border-white/10'}
+            ${!primaryComplaint ? 'border-clinical-danger/50' : 'border-clinical-success/50 ring-1 ring-clinical-success/30'}
             text-white placeholder-clinical-muted focus:outline-none
           `}
         />
@@ -85,13 +94,13 @@ export function ComplaintStep({ form }: ComplaintStepProps) {
       <div className="space-y-3">
         <label className="block text-sm font-medium text-gray-300 flex items-center gap-2">
           <Clock className="w-4 h-4" />
-          Duration of Symptoms <span className="text-clinical-danger">*</span>
+          Duration of Symptoms <span className="text-clinical-danger text-xs">*Required</span>
         </label>
         <select
           {...register('complaintDuration')}
           className={`
             w-full px-4 py-3 rounded-xl bg-clinical-secondary border 
-            ${errors.complaintDuration ? 'border-clinical-danger' : 'border-white/10'}
+            ${!complaintDuration ? 'border-clinical-danger/50' : 'border-clinical-success/50 ring-1 ring-clinical-success/30'}
             text-white focus:outline-none cursor-pointer
           `}
         >
@@ -109,7 +118,7 @@ export function ComplaintStep({ form }: ComplaintStepProps) {
       <div className="space-y-3">
         <label className="block text-sm font-medium text-gray-300 flex items-center gap-2">
           <AlertCircle className="w-4 h-4" />
-          Symptom Severity
+          Symptom Severity <span className="text-clinical-danger text-xs">*Required</span>
         </label>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {severityOptions.map((option) => (
@@ -119,10 +128,10 @@ export function ComplaintStep({ form }: ComplaintStepProps) {
                 flex flex-col p-4 rounded-xl cursor-pointer transition-all duration-200
                 border ${complaintSeverity === option.value 
                   ? option.color === 'emerald' 
-                    ? 'bg-emerald-500/20 border-emerald-500' 
+                    ? 'bg-emerald-500/20 border-emerald-500 ring-1 ring-emerald-500/30' 
                     : option.color === 'amber' 
-                      ? 'bg-amber-500/20 border-amber-500' 
-                      : 'bg-red-500/20 border-red-500'
+                      ? 'bg-amber-500/20 border-amber-500 ring-1 ring-amber-500/30' 
+                      : 'bg-red-500/20 border-red-500 ring-1 ring-red-500/30'
                   : 'bg-clinical-secondary/50 border-white/10 hover:border-white/20'}
               `}
             >
@@ -153,7 +162,8 @@ export function ComplaintStep({ form }: ComplaintStepProps) {
       <div className="space-y-3">
         <label className="block text-sm font-medium text-gray-300 flex items-center gap-2">
           <FileText className="w-4 h-4" />
-          Additional Notes (optional)
+          Additional Notes
+          <span className="text-clinical-muted text-xs">(Optional)</span>
         </label>
         <textarea
           {...register('additionalNotes')}
@@ -171,7 +181,7 @@ export function ComplaintStep({ form }: ComplaintStepProps) {
           <h4 className="text-sm font-semibold text-white mb-2">Intake Summary</h4>
           <div className="text-sm text-clinical-muted space-y-1">
             <p><strong className="text-gray-300">Complaint:</strong> {primaryComplaint}</p>
-            <p><strong className="text-gray-300">Duration:</strong> {watch('complaintDuration') || 'Not specified'}</p>
+            <p><strong className="text-gray-300">Duration:</strong> {complaintDuration || 'Not specified'}</p>
             <p><strong className="text-gray-300">Severity:</strong> {complaintSeverity || 'moderate'}</p>
           </div>
         </div>
@@ -186,4 +196,3 @@ export function ComplaintStep({ form }: ComplaintStepProps) {
     </div>
   )
 }
-

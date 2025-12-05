@@ -1,6 +1,6 @@
 import { UseFormReturn } from 'react-hook-form'
 import { PatientData } from '@/shared/types/patient'
-import { Heart, Cigarette, Wine, Dumbbell, Moon, Utensils } from 'lucide-react'
+import { Heart, Cigarette, Wine, Dumbbell, Moon, Utensils, Info } from 'lucide-react'
 
 interface LifestyleStepProps {
   form: UseFormReturn<PatientData>
@@ -42,11 +42,20 @@ export function LifestyleStep({ form }: LifestyleStepProps) {
         </div>
       </div>
 
+      {/* Required fields notice */}
+      <div className="p-3 rounded-lg bg-pink-500/10 border border-pink-500/20 flex items-start gap-2">
+        <Info className="w-4 h-4 text-pink-400 mt-0.5 shrink-0" />
+        <p className="text-sm text-pink-300">
+          Smoking, alcohol, and exercise fields (<span className="text-clinical-danger">*</span>) are required as they impact medication safety. Sleep and diet are optional.
+        </p>
+      </div>
+
       {/* Smoking Status */}
       <div className="space-y-3">
         <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
           <Cigarette className="w-4 h-4" />
           Smoking Status
+          <span className="text-clinical-danger text-xs">*Required</span>
         </label>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {smokingOptions.map((option) => (
@@ -55,7 +64,7 @@ export function LifestyleStep({ form }: LifestyleStepProps) {
               className={`
                 flex items-center gap-3 p-4 rounded-xl cursor-pointer transition-all duration-200
                 border ${lifestyle?.smokingStatus === option.value 
-                  ? 'bg-clinical-accent/20 border-clinical-accent' 
+                  ? 'bg-clinical-accent/20 border-clinical-accent ring-1 ring-clinical-accent/30' 
                   : 'bg-clinical-secondary/50 border-white/10 hover:border-white/20'}
               `}
             >
@@ -84,6 +93,7 @@ export function LifestyleStep({ form }: LifestyleStepProps) {
         <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
           <Wine className="w-4 h-4" />
           Alcohol Consumption
+          <span className="text-clinical-danger text-xs">*Required</span>
         </label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {alcoholOptions.map((option) => (
@@ -92,7 +102,7 @@ export function LifestyleStep({ form }: LifestyleStepProps) {
               className={`
                 flex flex-col p-4 rounded-xl cursor-pointer transition-all duration-200
                 border ${lifestyle?.alcoholUse === option.value 
-                  ? 'bg-clinical-accent/20 border-clinical-accent' 
+                  ? 'bg-clinical-accent/20 border-clinical-accent ring-1 ring-clinical-accent/30' 
                   : 'bg-clinical-secondary/50 border-white/10 hover:border-white/20'}
               `}
             >
@@ -121,6 +131,7 @@ export function LifestyleStep({ form }: LifestyleStepProps) {
         <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
           <Dumbbell className="w-4 h-4" />
           Exercise Frequency
+          <span className="text-clinical-danger text-xs">*Required</span>
         </label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {exerciseOptions.map((option) => (
@@ -129,7 +140,7 @@ export function LifestyleStep({ form }: LifestyleStepProps) {
               className={`
                 flex flex-col p-4 rounded-xl cursor-pointer transition-all duration-200
                 border ${lifestyle?.exerciseFrequency === option.value 
-                  ? 'bg-clinical-accent/20 border-clinical-accent' 
+                  ? 'bg-clinical-accent/20 border-clinical-accent ring-1 ring-clinical-accent/30' 
                   : 'bg-clinical-secondary/50 border-white/10 hover:border-white/20'}
               `}
             >
@@ -151,6 +162,7 @@ export function LifestyleStep({ form }: LifestyleStepProps) {
         <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
           <Moon className="w-4 h-4" />
           Average Sleep (hours per night)
+          <span className="text-clinical-muted text-xs">(Optional)</span>
         </label>
         <div className="flex items-center gap-4">
           <input
@@ -179,7 +191,8 @@ export function LifestyleStep({ form }: LifestyleStepProps) {
       <div className="space-y-3">
         <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
           <Utensils className="w-4 h-4" />
-          Diet Type (optional)
+          Diet Type
+          <span className="text-clinical-muted text-xs">(Optional)</span>
         </label>
         <input
           {...register('lifestyle.dietType')}
@@ -192,4 +205,3 @@ export function LifestyleStep({ form }: LifestyleStepProps) {
     </div>
   )
 }
-

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { UseFormReturn } from 'react-hook-form'
 import { PatientData } from '@/shared/types/patient'
 import { commonConditions, commonAllergies } from '../../constants/samplePatients'
-import { FileText, X, Plus, AlertTriangle } from 'lucide-react'
+import { FileText, X, Plus, AlertTriangle, Info } from 'lucide-react'
 
 interface MedicalHistoryStepProps {
   form: UseFormReturn<PatientData>
@@ -57,11 +57,20 @@ export function MedicalHistoryStep({
         </div>
       </div>
 
+      {/* Optional fields notice */}
+      <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-start gap-2">
+        <Info className="w-4 h-4 text-purple-400 mt-0.5 shrink-0" />
+        <p className="text-sm text-purple-300">
+          All fields in this section are <strong>optional</strong>. Add any relevant conditions or allergies, or skip to the next step.
+        </p>
+      </div>
+
       {/* Conditions Section */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-white flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-purple-500" />
           Medical Conditions
+          <span className="text-xs text-clinical-muted font-normal">(Optional)</span>
         </h3>
 
         {/* Selected conditions */}
@@ -143,6 +152,7 @@ export function MedicalHistoryStep({
         <h3 className="text-lg font-semibold text-white flex items-center gap-2">
           <AlertTriangle className="w-5 h-5 text-clinical-danger" />
           Allergies
+          <span className="text-xs text-clinical-muted font-normal">(Optional - but important for safety)</span>
         </h3>
 
         {/* Selected allergies */}
@@ -230,4 +240,3 @@ export function MedicalHistoryStep({
     </div>
   )
 }
-

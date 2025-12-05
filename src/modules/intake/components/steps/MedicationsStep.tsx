@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { UseFormReturn } from 'react-hook-form'
 import { PatientData, Medication } from '@/shared/types/patient'
-import { Pill, X, Plus, Clock, Droplets } from 'lucide-react'
+import { Pill, X, Plus, Clock, Droplets, Info } from 'lucide-react'
 
 interface MedicationsStepProps {
   form: UseFormReturn<PatientData>
@@ -52,6 +52,14 @@ export function MedicationsStep({ form, addMedication, removeMedication }: Medic
           <h2 className="text-xl font-bold text-white">Current Medications</h2>
           <p className="text-sm text-clinical-muted">List all medications the patient is currently taking</p>
         </div>
+      </div>
+
+      {/* Optional fields notice */}
+      <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-2">
+        <Info className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+        <p className="text-sm text-emerald-300">
+          Medications are <strong>optional</strong> but highly recommended for accurate drug interaction analysis. Skip if patient is not on any medications.
+        </p>
       </div>
 
       {/* Current medications list */}

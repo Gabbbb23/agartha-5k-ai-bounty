@@ -5,17 +5,19 @@ import { MedicationsStep } from './steps/MedicationsStep'
 import { HealthMetricsStep } from './steps/HealthMetricsStep'
 import { LifestyleStep } from './steps/LifestyleStep'
 import { ComplaintStep } from './steps/ComplaintStep'
-import { ChevronLeft, ChevronRight, Send, User, FileText, Pill, Activity, Heart, Stethoscope } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Send, User, FileText, Pill, Activity, Heart, Stethoscope, AlertCircle } from 'lucide-react'
 
 const stepIcons = [User, FileText, Pill, Activity, Heart, Stethoscope]
 
 export function IntakeWizard() {
   const {
     form,
+    stepErrors,
     wizardStep,
     wizardSteps,
     isFirstStep,
     isLastStep,
+    isCurrentStepValid,
     nextStep,
     prevStep,
     goToStep,
@@ -28,7 +30,7 @@ export function IntakeWizard() {
     onSubmit,
   } = useIntakeForm()
 
-  const { handleSubmit, formState: { errors } } = form
+  const { handleSubmit } = form
 
   const renderStep = () => {
     switch (wizardStep) {
@@ -63,38 +65,53 @@ export function IntakeWizard() {
     }
   }
 
+  const handleNextStep = async () => {
+    await nextStep()
+  }
+
   return (
     <div className="card">
-      {/* Step indicator */}
-      <div className="flex items-center justify-between mb-8 overflow-x-auto pb-2">
+      {/* Step indicator with arrows */}
+      <div className="flex items-center justify-center mb-8 overflow-x-auto pb-2">
         {wizardSteps.map((step, index) => {
           const Icon = stepIcons[index]
           const isActive = index === wizardStep
           const isCompleted = index < wizardStep
 
           return (
-            <button
-              key={step.id}
-              onClick={() => goToStep(index)}
-              className={`
-                flex flex-col items-center gap-2 min-w-[80px] p-2 rounded-lg transition-all duration-200
-                ${isActive ? 'bg-clinical-accent/20' : 'hover:bg-white/5'}
-              `}
-            >
-              <div className={`
-                w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200
-                ${isActive 
-                  ? 'bg-clinical-accent text-white' 
-                  : isCompleted 
-                    ? 'bg-clinical-success text-white' 
-                    : 'bg-clinical-secondary text-clinical-muted border border-white/10'}
-              `}>
-                {isCompleted ? '✓' : <Icon className="w-5 h-5" />}
-              </div>
-              <span className={`text-xs font-medium ${isActive ? 'text-white' : 'text-clinical-muted'}`}>
-                {step.title}
-              </span>
-            </button>
+            <div key={step.id} className="flex items-center">
+              <button
+                onClick={() => goToStep(index)}
+                className={`
+                  flex flex-col items-center gap-2 min-w-[80px] p-2 rounded-lg transition-all duration-200
+                  ${isActive ? 'bg-clinical-accent/20' : 'hover:bg-white/5'}
+                `}
+              >
+                <div className={`
+                  w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200
+                  ${isActive 
+                    ? 'bg-clinical-accent text-white ring-4 ring-clinical-accent/30' 
+                    : isCompleted 
+                      ? 'bg-clinical-success text-white' 
+                      : 'bg-clinical-secondary text-clinical-muted border border-white/10'}
+                `}>
+                  {isCompleted ? '✓' : <Icon className="w-5 h-5" />}
+                </div>
+                <span className={`text-xs font-medium text-center ${isActive ? 'text-white' : 'text-clinical-muted'}`}>
+                  {step.title}
+                </span>
+              </button>
+              
+              {/* Arrow between steps */}
+              {index < wizardSteps.length - 1 && (
+                <div className={`
+                  mx-1 flex items-center
+                  ${index < wizardStep ? 'text-clinical-success' : 'text-clinical-muted/30'}
+                `}>
+                  <ChevronRight className="w-5 h-5" />
+                </div>
+              )}
+            </div>
           )
         })}
       </div>
@@ -105,13 +122,16 @@ export function IntakeWizard() {
           {renderStep()}
         </div>
 
-        {/* Error summary */}
-        {Object.keys(errors).length > 0 && (
+        {/* Step validation errors */}
+        {stepErrors.length > 0 && (
           <div className="mt-4 p-4 rounded-xl bg-clinical-danger/10 border border-clinical-danger/30">
-            <p className="text-sm text-red-400 font-medium mb-2">Please fix the following errors:</p>
-            <ul className="text-xs text-red-300 space-y-1">
-              {Object.entries(errors).map(([key, error]) => (
-                <li key={key}>• {error?.message?.toString() || `Invalid ${key}`}</li>
+            <div className="flex items-center gap-2 mb-2">
+              <AlertCircle className="w-4 h-4 text-clinical-danger" />
+              <p className="text-sm text-red-400 font-medium">Please complete the required fields:</p>
+            </div>
+            <ul className="text-sm text-red-300 space-y-1 ml-6">
+              {stepErrors.map((error, index) => (
+                <li key={index}>• {error}</li>
               ))}
             </ul>
           </div>
@@ -149,8 +169,13 @@ export function IntakeWizard() {
           ) : (
             <button
               type="button"
-              onClick={nextStep}
-              className="btn-primary flex items-center gap-2"
+              onClick={handleNextStep}
+              className={`
+                flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-300
+                ${isCurrentStepValid() 
+                  ? 'bg-gradient-to-r from-clinical-accent to-purple-600 text-white hover:shadow-lg hover:shadow-clinical-accent/25 hover:scale-[1.02] active:scale-[0.98]'
+                  : 'bg-gradient-to-r from-clinical-accent to-purple-600 text-white hover:shadow-lg hover:shadow-clinical-accent/25'}
+              `}
             >
               Next Step
               <ChevronRight className="w-4 h-4" />
@@ -161,4 +186,3 @@ export function IntakeWizard() {
     </div>
   )
 }
-
