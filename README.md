@@ -232,3 +232,7 @@ This is a hackathon project. Feel free to fork and extend!
 ---
 
 Built with ❤️ for healthcare professionals by the Agarthian Tech team
+
+---
+
+# GLORY TO AGARTHA
