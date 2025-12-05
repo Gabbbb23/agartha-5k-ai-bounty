@@ -1,4 +1,4 @@
-import { AlertTriangle, AlertCircle, CheckCircle, XCircle } from 'lucide-react'
+import { AlertTriangle, AlertCircle, CheckCircle, XCircle, LucideIcon } from 'lucide-react'
 import { RiskLevel, getRiskLevelLabel } from '@/shared/types/analysis'
 
 interface RiskIndicatorProps {
@@ -6,8 +6,17 @@ interface RiskIndicatorProps {
   score: number
 }
 
+interface RiskConfig {
+  icon: LucideIcon
+  bgColor: string
+  borderColor: string
+  textColor: string
+  glowClass: string
+  gradient: string
+}
+
 export function RiskIndicator({ level, score }: RiskIndicatorProps) {
-  const config = {
+  const config: Record<RiskLevel, RiskConfig> = {
     low: {
       icon: CheckCircle,
       bgColor: 'bg-clinical-success/20',
@@ -81,4 +90,3 @@ export function RiskIndicator({ level, score }: RiskIndicatorProps) {
     </div>
   )
 }
-

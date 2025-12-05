@@ -1,4 +1,4 @@
-import { Activity, History, FileText } from 'lucide-react'
+import { Activity, History } from 'lucide-react'
 
 export type TabId = 'workflow' | 'audit'
 

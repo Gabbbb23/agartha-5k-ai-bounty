@@ -14,7 +14,7 @@ export function SafetyAlerts({ drugInteractions, contraindications, riskFactors 
     return order[a.severity] - order[b.severity]
   })
 
-  const sortedContraindications = [...contraindications].sort((a, b) => {
+  const sortedContraindications = [...contraindications].sort((a, _b) => {
     return a.severity === 'absolute' ? -1 : 1
   })
 

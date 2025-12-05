@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useAppStore } from '@/shared/store/appStore'
-import { AuditLogEntry } from '@/shared/types/analysis'
 import { 
   Clock, 
   User, 

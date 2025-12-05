@@ -6,7 +6,6 @@ import {
   DoctorDecision,
   generateDataHash,
   generateSessionId,
-  RiskLevel
 } from '../types/analysis'
 import { saveAuditEntry, loadAuditEntries, getClientInfo } from '../services/auditService'
 import { isSupabaseConfigured } from '../services/supabase'

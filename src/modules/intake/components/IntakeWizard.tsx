@@ -28,7 +28,7 @@ export function IntakeWizard() {
     onSubmit,
   } = useIntakeForm()
 
-  const { handleSubmit, formState: { errors, isValid } } = form
+  const { handleSubmit, formState: { errors } } = form
 
   const renderStep = () => {
     switch (wizardStep) {

@@ -1,6 +1,9 @@
 import { z } from 'zod'
 import { RiskLevel } from './patient'
 
+// Re-export RiskLevel for convenience
+export type { RiskLevel }
+
 // JSON Schema for LLM response validation
 export const DrugInteractionSchema = z.object({
   drug1: z.string(),
