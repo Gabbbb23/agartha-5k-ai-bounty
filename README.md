@@ -9,6 +9,7 @@ An AI-powered clinical assistant that turns patient intake data and medical hist
 ## 🏥 Overview
 
 MedAssist AI helps doctors make faster, data-driven decisions by:
+
 - **Flagging drug interactions** between current and proposed medications
 - **Identifying contraindications** based on patient conditions and allergies
 - **Checking dosage appropriateness** considering age, weight, and health factors
@@ -19,6 +20,7 @@ MedAssist AI helps doctors make faster, data-driven decisions by:
 ## ✨ Features
 
 ### Core Functionality
+
 - 📋 **Multi-step Patient Intake Wizard** - Comprehensive data collection
 - 🤖 **AI-Powered Analysis** - Claude API integration with medical guidelines
 - 🛡️ **Safety Risk Scoring** - Low/Medium/High/Critical risk assessment
@@ -26,6 +28,7 @@ MedAssist AI helps doctors make faster, data-driven decisions by:
 - 📊 **Clinical Dashboard** - Clear visualization of recommendations
 
 ### Safety Features
+
 - Aggressive risk flagging (false positives preferred over misses)
 - Cross-reactivity checking for allergies
 - Contraindication detection (absolute and relative)
@@ -33,6 +36,7 @@ MedAssist AI helps doctors make faster, data-driven decisions by:
 - Age and organ function considerations
 
 ### Bonus Features
+
 - ✅ JSON Schema validation for LLM responses
 - ✅ Drug interaction database for cross-checking
 - ✅ Multi-step wizard (Intake → Analysis → Review → Approval)
@@ -43,6 +47,7 @@ MedAssist AI helps doctors make faster, data-driven decisions by:
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Node.js 18+
 - npm or yarn
 
@@ -68,8 +73,10 @@ npm run dev
 Create a `.env` file in the root directory:
 
 ```env
-VITE_ANTHROPIC_API_KEY=your_anthropic_api_key_here
+VITE_GEMINI_API_KEY=your_gemini_api_key_here
 ```
+
+**Get your FREE Gemini API key at**: https://aistudio.google.com/app/apikey
 
 > **Note**: The app includes a comprehensive mock analysis system that works without an API key for demonstration purposes.
 
@@ -102,25 +109,27 @@ src/
 
 The app includes 4 pre-configured sample patients demonstrating various risk scenarios:
 
-| Patient | Risk Level | Scenario |
-|---------|------------|----------|
-| John Smith | 🔴 HIGH | Elderly with multiple interactions (ED + nitrates) |
-| Maria Garcia | 🟡 MEDIUM | Contraindications present (hair loss + DVT history) |
-| David Chen | 🟢 LOW | Healthy patient with minor complaint |
-| Robert Johnson | ⛔ CRITICAL | Multiple severe allergies, complex cardiac history |
+| Patient        | Risk Level  | Scenario                                            |
+| -------------- | ----------- | --------------------------------------------------- |
+| John Smith     | 🔴 HIGH     | Elderly with multiple interactions (ED + nitrates)  |
+| Maria Garcia   | 🟡 MEDIUM   | Contraindications present (hair loss + DVT history) |
+| David Chen     | 🟢 LOW      | Healthy patient with minor complaint                |
+| Robert Johnson | ⛔ CRITICAL | Multiple severe allergies, complex cardiac history  |
 
 ## 🔬 Technical Details
 
 ### Drug Interaction Database
 
 The built-in database includes:
+
 - **Critical Interactions**: PDE5 + Nitrates, SSRIs + MAOIs, etc.
 - **Major Interactions**: Warfarin + NSAIDs, Clopidogrel + PPIs
 - **Allergy Cross-Reactivity**: Penicillin → Cephalosporins, Sulfa → Thiazides
 
 ### LLM Integration
 
-The system prompt encodes:
+Uses **Google Gemini 1.5 Flash** (free tier available!) with a comprehensive medical system prompt that encodes:
+
 - Drug interaction knowledge base
 - Contraindications by condition
 - Allergy cross-reactivity mappings
@@ -131,17 +140,17 @@ The system prompt encodes:
 
 ```typescript
 interface AnalysisResult {
-  overallRiskLevel: 'low' | 'medium' | 'high' | 'critical'
-  riskScore: number // 0-100
-  summaryAssessment: string
-  primaryRecommendation: TreatmentRecommendation
-  alternativeTreatments: AlternativeTreatment[]
-  drugInteractions: DrugInteraction[]
-  contraindications: Contraindication[]
-  riskFactors: RiskFactor[]
-  lifestyleRecommendations: string[]
-  followUpRecommendations: string[]
-  labTestsRecommended: string[]
+  overallRiskLevel: "low" | "medium" | "high" | "critical";
+  riskScore: number; // 0-100
+  summaryAssessment: string;
+  primaryRecommendation: TreatmentRecommendation;
+  alternativeTreatments: AlternativeTreatment[];
+  drugInteractions: DrugInteraction[];
+  contraindications: Contraindication[];
+  riskFactors: RiskFactor[];
+  lifestyleRecommendations: string[];
+  followUpRecommendations: string[];
+  labTestsRecommended: string[];
 }
 ```
 
@@ -158,6 +167,7 @@ The interface is designed for busy clinicians:
 ## 📝 Audit Logging
 
 All actions are logged for compliance:
+
 - Patient data submission timestamps
 - AI analysis completion with risk level
 - Doctor review decisions
@@ -198,4 +208,3 @@ This is a hackathon project. Feel free to fork and extend!
 ---
 
 Built with ❤️ for healthcare professionals by the Agarthian Tech team
-
