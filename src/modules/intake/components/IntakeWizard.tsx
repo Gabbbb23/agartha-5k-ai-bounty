@@ -104,11 +104,19 @@ export function IntakeWizard() {
               
               {/* Arrow between steps */}
               {index < wizardSteps.length - 1 && (
-                <div className={`
-                  mx-1 flex items-center
-                  ${index < wizardStep ? 'text-clinical-success' : 'text-clinical-muted/30'}
-                `}>
-                  <ChevronRight className="w-5 h-5" />
+                <div className="flex items-center mx-2">
+                  <div className={`
+                    h-0.5 w-6 
+                    ${index < wizardStep ? 'bg-clinical-success' : 'bg-white/20'}
+                  `} />
+                  <ChevronRight className={`
+                    w-6 h-6 -ml-1
+                    ${index < wizardStep ? 'text-clinical-success' : 'text-white/40'}
+                  `} />
+                  <div className={`
+                    h-0.5 w-6 -ml-1
+                    ${index < wizardStep ? 'bg-clinical-success' : 'bg-white/20'}
+                  `} />
                 </div>
               )}
             </div>

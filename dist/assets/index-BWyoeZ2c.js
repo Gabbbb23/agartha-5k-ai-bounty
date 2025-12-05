@@ -426,10 +426,16 @@ ${v}`}class Re extends Error{constructor({message:e,code:r,cause:n,name:i}){var 
                 `,children:[l.jsx("div",{className:`
                   w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200
                   ${E?"bg-clinical-accent text-white ring-4 ring-clinical-accent/30":P?"bg-clinical-success text-white":"bg-clinical-secondary text-clinical-muted border border-white/10"}
-                `,children:P?"✓":l.jsx(N,{className:"w-5 h-5"})}),l.jsx("span",{className:`text-xs font-medium text-center ${E?"text-white":"text-clinical-muted"}`,children:_.title})]}),S<n.length-1&&l.jsx("div",{className:`
-                  mx-1 flex items-center
-                  ${S<r?"text-clinical-success":"text-clinical-muted/30"}
-                `,children:l.jsx(Co,{className:"w-5 h-5"})})]},_.id)})}),l.jsxs("form",{onSubmit:v(b),children:[l.jsx("div",{className:"animate-slide-up",children:h()}),e.length>0&&l.jsxs("div",{className:"mt-4 p-4 rounded-xl bg-clinical-danger/10 border border-clinical-danger/30",children:[l.jsxs("div",{className:"flex items-center gap-2 mb-2",children:[l.jsx(Ni,{className:"w-4 h-4 text-clinical-danger"}),l.jsx("p",{className:"text-sm text-red-400 font-medium",children:"Please complete the required fields:"})]}),l.jsx("ul",{className:"text-sm text-red-300 space-y-1 ml-6",children:e.map((_,S)=>l.jsxs("li",{children:["• ",_]},S))})]}),l.jsxs("div",{className:"flex items-center justify-between mt-8 pt-6 border-t border-white/10",children:[l.jsxs("button",{type:"button",onClick:c,disabled:i,className:`
+                `,children:P?"✓":l.jsx(N,{className:"w-5 h-5"})}),l.jsx("span",{className:`text-xs font-medium text-center ${E?"text-white":"text-clinical-muted"}`,children:_.title})]}),S<n.length-1&&l.jsxs("div",{className:"flex items-center mx-2",children:[l.jsx("div",{className:`
+                    h-0.5 w-6 
+                    ${S<r?"bg-clinical-success":"bg-white/20"}
+                  `}),l.jsx(Co,{className:`
+                    w-6 h-6 -ml-1
+                    ${S<r?"text-clinical-success":"text-white/40"}
+                  `}),l.jsx("div",{className:`
+                    h-0.5 w-6 -ml-1
+                    ${S<r?"bg-clinical-success":"bg-white/20"}
+                  `})]})]},_.id)})}),l.jsxs("form",{onSubmit:v(b),children:[l.jsx("div",{className:"animate-slide-up",children:h()}),e.length>0&&l.jsxs("div",{className:"mt-4 p-4 rounded-xl bg-clinical-danger/10 border border-clinical-danger/30",children:[l.jsxs("div",{className:"flex items-center gap-2 mb-2",children:[l.jsx(Ni,{className:"w-4 h-4 text-clinical-danger"}),l.jsx("p",{className:"text-sm text-red-400 font-medium",children:"Please complete the required fields:"})]}),l.jsx("ul",{className:"text-sm text-red-300 space-y-1 ml-6",children:e.map((_,S)=>l.jsxs("li",{children:["• ",_]},S))})]}),l.jsxs("div",{className:"flex items-center justify-between mt-8 pt-6 border-t border-white/10",children:[l.jsxs("button",{type:"button",onClick:c,disabled:i,className:`
               flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-200
               ${i?"text-clinical-muted cursor-not-allowed":"text-gray-300 hover:text-white hover:bg-white/5"}
             `,children:[l.jsx(r1,{className:"w-4 h-4"}),"Previous"]}),l.jsxs("div",{className:"text-sm text-clinical-muted",children:["Step ",r+1," of ",n.length]}),s?l.jsxs("button",{type:"submit",className:"btn-primary flex items-center gap-2",children:["Analyze Patient",l.jsx(Qv,{className:"w-4 h-4"})]}):l.jsxs("button",{type:"button",onClick:p,className:`
