@@ -8,8 +8,8 @@ interface TabNavigationProps {
 }
 
 const tabs = [
-  { id: 'workflow' as const, label: 'Clinical Workflow', icon: Activity },
-  { id: 'audit' as const, label: 'Audit Log', icon: History },
+  { id: 'workflow' as const, label: 'Clinical Workflow', shortLabel: 'Workflow', icon: Activity },
+  { id: 'audit' as const, label: 'Audit Log', shortLabel: 'Audit', icon: History },
 ]
 
 export function TabNavigation({ activeTab, onTabChange }: TabNavigationProps) {
@@ -24,7 +24,7 @@ export function TabNavigation({ activeTab, onTabChange }: TabNavigationProps) {
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
             className={`
-              flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm
+              flex items-center gap-1 md:gap-2 px-2 py-2 md:px-4 md:py-2.5 rounded-lg font-medium text-xs md:text-sm
               transition-all duration-200
               ${isActive 
                 ? 'bg-clinical-accent text-white shadow-lg shadow-clinical-accent/25' 
@@ -32,11 +32,11 @@ export function TabNavigation({ activeTab, onTabChange }: TabNavigationProps) {
             `}
           >
             <Icon className="w-4 h-4" />
-            {tab.label}
+            <span className="hidden sm:inline">{tab.label}</span>
+            <span className="sm:hidden">{tab.shortLabel}</span>
           </button>
         )
       })}
     </div>
   )
 }
-

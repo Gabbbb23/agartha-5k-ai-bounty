@@ -152,7 +152,7 @@ export function IntakeWizard() {
             onClick={prevStep}
             disabled={isFirstStep}
             className={`
-              flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-200
+              flex items-center gap-1 md:gap-2 px-3 py-2 md:px-5 md:py-2.5 rounded-xl font-medium transition-all duration-200 text-sm md:text-base
               ${isFirstStep 
                 ? 'text-clinical-muted cursor-not-allowed' 
                 : 'text-gray-300 hover:text-white hover:bg-white/5'}
@@ -169,7 +169,7 @@ export function IntakeWizard() {
           {isLastStep ? (
             <button
               type="submit"
-              className="btn-primary flex items-center gap-2"
+              className="btn-primary flex items-center gap-1 md:gap-2 px-3 py-2 md:px-5 md:py-2.5 text-sm md:text-base"
             >
               Analyze Patient
               <Send className="w-4 h-4" />
@@ -179,7 +179,7 @@ export function IntakeWizard() {
               type="button"
               onClick={handleNextStep}
               className={`
-                flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-300
+                flex items-center gap-1 md:gap-2 px-3 py-2 md:px-6 md:py-3 rounded-xl font-semibold transition-all duration-300 text-sm md:text-base
                 ${isCurrentStepValid() 
                   ? 'bg-gradient-to-r from-clinical-accent to-purple-600 text-white hover:shadow-lg hover:shadow-clinical-accent/25 hover:scale-[1.02] active:scale-[0.98]'
                   : 'bg-gradient-to-r from-clinical-accent to-purple-600 text-white hover:shadow-lg hover:shadow-clinical-accent/25'}

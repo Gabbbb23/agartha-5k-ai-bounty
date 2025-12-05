@@ -47,7 +47,7 @@ interface AppState {
   supabaseConnected: boolean
   
   // Reset
-  resetAll: () => void
+  resetAll: (skippedReview?: boolean) => void
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -233,14 +233,39 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   
   // Reset (keeps audit log in database, just clears local state)
-  resetAll: () => set({
-    currentStep: 0,
-    patientData: null,
-    analysisResult: null,
-    analysisId: null,
-    isAnalyzing: false,
-    analysisError: null,
-    doctorDecision: null,
-    // Note: We don't clear auditLog or sessionId to preserve history
-  }),
+  resetAll: (skippedReview = false) => {
+    const state = get()
+    
+    // Log if review was skipped
+    if (skippedReview && state.analysisResult && !state.doctorDecision && state.patientData) {
+      const patientId = `${state.patientData.firstName}-${state.patientData.lastName}`
+      
+      state.addAuditEntry({
+        action: 'rejected',
+        userId: 'unknown-physician',
+        userName: 'Unknown Physician',
+        patientId,
+        details: '⚠️ COMPLIANCE WARNING: Treatment plan review was skipped - New patient started without physician decision',
+        analysisId: state.analysisId || undefined,
+        riskLevel: state.analysisResult.overallRiskLevel,
+        riskScore: state.analysisResult.riskScore,
+        confidenceScore: state.analysisResult.primaryRecommendation.confidenceScore,
+        drugInteractionsCount: state.analysisResult.drugInteractions.length,
+        contraindicationsCount: state.analysisResult.contraindications.length,
+        treatmentMedication: state.analysisResult.primaryRecommendation.medication,
+        treatmentDosage: state.analysisResult.primaryRecommendation.dosage,
+      })
+    }
+    
+    set({
+      currentStep: 0,
+      patientData: null,
+      analysisResult: null,
+      analysisId: null,
+      isAnalyzing: false,
+      analysisError: null,
+      doctorDecision: null,
+      // Note: We don't clear auditLog or sessionId to preserve history
+    })
+  },
 }))
