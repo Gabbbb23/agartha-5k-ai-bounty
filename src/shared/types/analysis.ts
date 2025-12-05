@@ -78,17 +78,62 @@ export type AlternativeTreatment = z.infer<typeof AlternativeTreatmentSchema>
 export type RiskFactor = z.infer<typeof RiskFactorSchema>
 export type AnalysisResult = z.infer<typeof AnalysisResultSchema>
 
-// Audit log entry
+// Enhanced audit log entry for medical compliance
 export interface AuditLogEntry {
+  // Core identification
   id: string
   timestamp: string
+  sessionId: string
+  
+  // Action details
   action: 'created' | 'viewed' | 'approved' | 'modified' | 'rejected'
+  details: string
+  
+  // User information
   userId: string
   userName: string
+  ipAddress?: string
+  userAgent?: string
+  
+  // Patient reference
   patientId: string
-  details: string
+  patientDataHash?: string
+  patientSnapshot?: Record<string, unknown>
+  
+  // Analysis context
+  analysisId?: string
+  riskLevel?: RiskLevel
+  riskScore?: number
+  confidenceScore?: number
+  drugInteractionsCount?: number
+  contraindicationsCount?: number
+  analysisSnapshot?: Record<string, unknown>
+  
+  // Treatment details
+  treatmentMedication?: string
+  treatmentDosage?: string
+  
+  // Change tracking
   previousValue?: string
   newValue?: string
+  modificationsJson?: string[]
+}
+
+// Helper to generate a simple hash for data integrity verification
+export function generateDataHash(data: unknown): string {
+  const str = JSON.stringify(data)
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash // Convert to 32bit integer
+  }
+  return `hash-${Math.abs(hash).toString(16)}`
+}
+
+// Generate a session ID for grouping related actions
+export function generateSessionId(): string {
+  return `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 }
 
 // Doctor decision

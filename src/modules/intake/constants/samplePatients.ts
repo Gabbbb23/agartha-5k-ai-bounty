@@ -231,6 +231,43 @@ export const samplePatients: {
         "ED worsened after cardiac surgery. Psychologically impacting patient. Has tried lifestyle modifications without success. Concerned about medication interactions with heart condition.",
     },
   },
+  {
+    label: "Sarah Williams - No Risk (Ideal Patient)",
+    description: "Young healthy woman with no medical history - perfect test case",
+    riskPreview: "NO RISK - Clean medical profile",
+    data: {
+      firstName: "Sarah",
+      lastName: "Williams",
+      dateOfBirth: "1998-06-15",
+      sex: "female",
+      conditions: [],
+      allergies: [],
+      familyHistory: [],
+      surgicalHistory: [],
+      currentMedications: [],
+      healthMetrics: {
+        age: 26,
+        weight: 62,
+        height: 165,
+        bloodPressureSystolic: 112,
+        bloodPressureDiastolic: 70,
+        heartRate: 68,
+        bloodGlucose: 85,
+      },
+      lifestyle: {
+        smokingStatus: "never",
+        alcoholUse: "occasional",
+        exerciseFrequency: "active",
+        dietType: "Balanced whole foods",
+        sleepHours: 8,
+      },
+      primaryComplaint: "Skin conditions (acne)",
+      complaintDuration: "2 months",
+      complaintSeverity: "mild",
+      additionalNotes:
+        "Mild hormonal acne flare-up. No previous treatments tried. Looking for first-line treatment options.",
+    },
+  },
 ];
 
 export const commonConditions = [

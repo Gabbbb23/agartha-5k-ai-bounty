@@ -73,12 +73,36 @@ npm run dev
 Create a `.env` file in the root directory:
 
 ```env
+# Required for AI analysis
 VITE_GEMINI_API_KEY=your_gemini_api_key_here
+
+# Optional: Supabase for audit log persistence
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your_anon_key_here
 ```
 
 **Get your FREE Gemini API key at**: https://aistudio.google.com/app/apikey
 
 > **Note**: The app includes a comprehensive mock analysis system that works without an API key for demonstration purposes.
+
+### Supabase Setup (Optional - for Audit Log Persistence)
+
+1. Create a free account at [supabase.com](https://supabase.com)
+2. Create a new project
+3. Go to **SQL Editor** and run the migration script:
+
+```sql
+-- Copy contents from: supabase/migrations/001_create_audit_logs.sql
+```
+
+4. Get your credentials from **Project Settings > API**:
+
+   - `VITE_SUPABASE_URL` = Project URL
+   - `VITE_SUPABASE_ANON_KEY` = anon/public key
+
+5. Add them to your `.env` file and restart the dev server
+
+Without Supabase, the audit log works in-memory only (resets on page refresh).
 
 ## 📁 Project Structure
 
