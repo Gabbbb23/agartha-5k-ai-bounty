@@ -8,7 +8,6 @@ import { SafetyAlerts } from './SafetyAlerts'
 import { AlternativesList } from './AlternativesList'
 import { RecommendationsList } from './RecommendationsList'
 import { DoctorActions } from './DoctorActions'
-import { AuditLog } from './AuditLog'
 import { ExportButton } from '@/shared/components/ExportButton'
 import { exportAnalysisToJson, exportAnalysisToCsv } from '@/shared/services/exportService'
 import { 
@@ -16,7 +15,6 @@ import {
   FileText, 
   Pill, 
   Stethoscope, 
-  History,
   ChevronDown,
   User,
   Heart,
@@ -185,17 +183,6 @@ export function Dashboard({ analysisResult }: DashboardProps) {
         analysisResult={analysisResult}
         existingDecision={doctorDecision}
       />
-
-      {/* Audit Log */}
-      <CollapsibleSection
-        id="audit"
-        title="Audit Log"
-        icon={History}
-        expanded={expandedSections.has('audit')}
-        onToggle={() => toggleSection('audit')}
-      >
-        <AuditLog />
-      </CollapsibleSection>
 
       {/* Disclaimer */}
       <div className="p-4 rounded-xl bg-clinical-secondary/30 border border-white/10">

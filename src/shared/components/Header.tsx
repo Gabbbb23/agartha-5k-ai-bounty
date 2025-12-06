@@ -20,7 +20,7 @@ export function Header() {
 
   const handleForceReset = () => {
     setShowWarning(false)
-    resetAll(true) // Pass true to indicate review was skipped
+    resetAll() // Case will remain as "pending" in history
   }
 
   return (
@@ -122,7 +122,7 @@ export function Header() {
             </div>
 
             <p className="mt-4 text-xs text-clinical-muted text-center">
-              ⚠️ Skipping review will be logged in the audit trail
+              ℹ️ This case will remain as "Pending" in Patient History
             </p>
           </div>
         </div>

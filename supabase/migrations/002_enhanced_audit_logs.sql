@@ -104,3 +104,4 @@ ORDER BY DATE(timestamp) DESC;
 GRANT SELECT ON audit_compliance_report TO anon;
 GRANT SELECT ON audit_compliance_report TO authenticated;
 
+

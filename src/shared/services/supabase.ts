@@ -12,3 +12,4 @@ export const isSupabaseConfigured = (): boolean => {
   return supabase !== null
 }
 
+

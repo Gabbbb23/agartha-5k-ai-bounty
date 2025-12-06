@@ -128,3 +128,4 @@ INSERT INTO allergy_mappings (allergy, drug_classes, cross_reactants, is_verifie
 ('iodine', ARRAY['iodine-containing compounds'], ARRAY['contrast dye', 'amiodarone', 'povidone-iodine'], TRUE, 'Shellfish allergy does NOT indicate iodine allergy'),
 ('contrast dye', ARRAY['radiographic contrast'], ARRAY['all iodinated contrast agents'], TRUE, 'Premedication may allow safe use');
 
+

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Users, AlertTriangle, AlertCircle, CheckCircle, XCircle, ChevronDown } from 'lucide-react'
+import { Users, AlertTriangle, AlertCircle, CheckCircle, XCircle, ChevronDown, Database, Brain } from 'lucide-react'
 import { samplePatients } from '../constants/samplePatients'
 import { useAppStore } from '@/shared/store/appStore'
 
@@ -8,7 +8,7 @@ export function SamplePatientSelector() {
   const { setPatientData, setCurrentStep } = useAppStore()
 
   const handleSelectPatient = (patientData: typeof samplePatients[0]['data']) => {
-    setPatientData(patientData)
+    setPatientData(patientData, true) // true = isSamplePatient
     setCurrentStep(1)
   }
 
@@ -38,7 +38,7 @@ export function SamplePatientSelector() {
           </div>
           <div className="text-left">
             <h3 className="font-semibold text-white">Quick Start: Load Sample Patient</h3>
-            <p className="text-sm text-clinical-muted">Choose a pre-configured patient to test risk flagging</p>
+            <p className="text-sm text-clinical-muted">Demo patients showing drug interactions, contraindications & allergy checks</p>
           </div>
         </div>
         <ChevronDown className={`w-5 h-5 text-clinical-muted transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
@@ -46,6 +46,21 @@ export function SamplePatientSelector() {
 
       {isOpen && (
         <div className="mt-4 pt-4 border-t border-white/10 space-y-3 animate-fade-in">
+          {/* Info banner */}
+          <div className="p-3 rounded-lg bg-clinical-accent/10 border border-clinical-accent/30 mb-4">
+            <div className="flex items-start gap-2 text-sm">
+              <div className="flex items-center gap-1 text-clinical-accent shrink-0">
+                <Brain className="w-4 h-4" />
+                <span>+</span>
+                <Database className="w-4 h-4" />
+              </div>
+              <p className="text-gray-300">
+                These samples demonstrate the <strong className="text-clinical-accent">two-layer safety approach</strong>: 
+                LLM medical intelligence + Database validation (drug interactions, contraindications, allergy cross-reactivity)
+              </p>
+            </div>
+          </div>
+
           {samplePatients.map((patient, index) => (
             <button
               key={index}
@@ -63,12 +78,25 @@ export function SamplePatientSelector() {
                     </span>
                   </div>
                   <p className="text-sm text-clinical-muted mb-2">{patient.description}</p>
+                  
+                  {/* What this sample demonstrates */}
+                  <div className="flex items-center gap-1.5 mb-2 text-xs">
+                    {patient.demonstratesFeature.includes('DB:') ? (
+                      <Database className="w-3.5 h-3.5 text-cyan-400" />
+                    ) : (
+                      <Brain className="w-3.5 h-3.5 text-purple-400" />
+                    )}
+                    <span className={`${patient.demonstratesFeature.includes('DB:') ? 'text-cyan-300' : 'text-purple-300'}`}>
+                      {patient.demonstratesFeature}
+                    </span>
+                  </div>
+                  
                   <span className={`badge ${getRiskBadgeClass(patient.riskPreview)}`}>
                     {patient.riskPreview}
                   </span>
                 </div>
-                <div className="text-xs text-clinical-muted">
-                  <div>{patient.data.currentMedications.length} medications</div>
+                <div className="text-xs text-clinical-muted text-right">
+                  <div>{patient.data.currentMedications.length} meds</div>
                   <div>{patient.data.conditions.length} conditions</div>
                   <div>{patient.data.allergies.length} allergies</div>
                 </div>

@@ -26,6 +26,7 @@ export function DoctorActions({ analysisResult, existingDecision }: DoctorAction
 
     setDoctorDecision({
       approved: true,
+      status: 'approved',
       modifications,
       additionalNotes: additionalNotes || undefined,
       timestamp: new Date().toISOString(),
@@ -48,6 +49,7 @@ export function DoctorActions({ analysisResult, existingDecision }: DoctorAction
 
     setDoctorDecision({
       approved: false,
+      status: 'rejected',
       modifications: [],
       rejectionReason: rejectionReason.trim(),
       additionalNotes: additionalNotes || undefined,
@@ -72,14 +74,16 @@ export function DoctorActions({ analysisResult, existingDecision }: DoctorAction
 
   // If already decided
   if (existingDecision) {
+    const isApproved = existingDecision.approved
+    
     return (
       <div className={`card ${
-        existingDecision.approved 
+        isApproved 
           ? 'border-clinical-success/50 bg-clinical-success/5' 
           : 'border-clinical-danger/50 bg-clinical-danger/5'
       }`}>
         <div className="flex items-center gap-3 mb-4">
-          {existingDecision.approved ? (
+          {isApproved ? (
             <div className="w-12 h-12 rounded-xl bg-clinical-success/20 flex items-center justify-center">
               <Check className="w-6 h-6 text-clinical-success" />
             </div>
@@ -90,7 +94,7 @@ export function DoctorActions({ analysisResult, existingDecision }: DoctorAction
           )}
           <div>
             <h3 className="font-semibold text-white">
-              {existingDecision.approved ? 'Treatment Plan Approved' : 'Treatment Plan Rejected'}
+              {isApproved ? 'Treatment Plan Approved' : 'Treatment Plan Rejected'}
             </h3>
             <p className="text-sm text-clinical-muted">
               By {existingDecision.doctorName} on {new Date(existingDecision.timestamp).toLocaleString()}
@@ -98,7 +102,7 @@ export function DoctorActions({ analysisResult, existingDecision }: DoctorAction
           </div>
         </div>
 
-        {existingDecision.approved && existingDecision.modifications.length > 0 && (
+        {isApproved && existingDecision.modifications.length > 0 && (
           <div className="p-3 rounded-lg bg-clinical-warning/10 border border-clinical-warning/20 mb-3">
             <h4 className="text-sm font-medium text-amber-400 mb-2">Modifications Made:</h4>
             <ul className="space-y-1">
@@ -112,7 +116,7 @@ export function DoctorActions({ analysisResult, existingDecision }: DoctorAction
           </div>
         )}
 
-        {!existingDecision.approved && existingDecision.rejectionReason && (
+        {!isApproved && existingDecision.rejectionReason && (
           <div className="p-3 rounded-lg bg-clinical-danger/10 border border-clinical-danger/20 mb-3">
             <h4 className="text-sm font-medium text-red-400 mb-1">Rejection Reason:</h4>
             <p className="text-sm text-gray-300">{existingDecision.rejectionReason}</p>

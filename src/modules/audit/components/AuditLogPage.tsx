@@ -24,7 +24,8 @@ import {
   Filter,
   RefreshCw,
   Calendar,
-  Download
+  Download,
+  Info
 } from 'lucide-react'
 import { format } from 'date-fns'
 
@@ -69,6 +70,7 @@ export function AuditLogPage() {
     approved: { icon: Check, color: 'text-clinical-success', bg: 'bg-clinical-success/20', label: 'Approved' },
     modified: { icon: Edit, color: 'text-clinical-warning', bg: 'bg-clinical-warning/20', label: 'Modified' },
     rejected: { icon: X, color: 'text-clinical-danger', bg: 'bg-clinical-danger/20', label: 'Rejected' },
+    deferred: { icon: Clock, color: 'text-amber-400', bg: 'bg-amber-500/20', label: 'Deferred' },
   }
 
   const getRiskBadge = (level?: string) => {
@@ -136,30 +138,35 @@ export function AuditLogPage() {
           value={auditLog.length} 
           icon={Activity}
           color="text-clinical-accent"
+          tooltip="Total number of logged actions including patient intake, AI analysis, approvals, and rejections."
         />
         <StatCard 
           label="Approvals" 
           value={auditLog.filter(e => e.action === 'approved').length}
           icon={Check}
           color="text-clinical-success"
+          tooltip="Number of treatment plans that were approved by a physician."
         />
         <StatCard 
           label="Rejections" 
           value={auditLog.filter(e => e.action === 'rejected').length}
           icon={X}
           color="text-clinical-danger"
+          tooltip="Number of treatment plans that were rejected by a physician."
         />
         <StatCard 
           label="High Risk Decisions" 
           value={auditLog.filter(e => e.riskLevel === 'high' || e.riskLevel === 'critical').length}
           icon={AlertTriangle}
           color="text-clinical-warning"
+          tooltip="Decisions made on cases with HIGH or CRITICAL risk levels. Tracks physician oversight of dangerous cases."
         />
         <StatCard 
           label="Unique Sessions" 
           value={new Set(auditLog.map(e => e.sessionId)).size}
           icon={Monitor}
           color="text-purple-400"
+          tooltip="Number of separate app usage sessions. A session lasts until the browser is refreshed or closed."
         />
       </div>
 
@@ -307,6 +314,16 @@ export function AuditLogPage() {
                             Score: {entry.riskScore}
                           </span>
                         )}
+                        {entry.modificationsJson && entry.modificationsJson.length > 0 && (
+                          <span className="text-xs font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded">
+                            {entry.modificationsJson.length} Modification{entry.modificationsJson.length > 1 ? 's' : ''}
+                          </span>
+                        )}
+                        {entry.newValue && (
+                          <span className="text-xs font-medium bg-purple-500/20 text-purple-400 border border-purple-500/30 px-2 py-0.5 rounded">
+                            Has Notes
+                          </span>
+                        )}
                       </div>
                       <p className="text-gray-300 mt-1">{entry.details}</p>
                       
@@ -360,6 +377,40 @@ export function AuditLogPage() {
                           Export Entry
                         </button>
                       </div>
+
+                      {/* Physician Modifications - Prominent Display */}
+                      {entry.modificationsJson && entry.modificationsJson.length > 0 && (
+                        <div className="mt-4 p-4 rounded-xl bg-amber-500/10 border-2 border-amber-500/30">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Edit className="w-5 h-5 text-amber-400" />
+                            <h4 className="text-base font-semibold text-amber-400">
+                              Physician Modifications ({entry.modificationsJson.length})
+                            </h4>
+                          </div>
+                          <ul className="space-y-2">
+                            {entry.modificationsJson.map((mod, i) => (
+                              <li key={i} className="flex items-start gap-3 bg-amber-500/10 rounded-lg p-3">
+                                <span className="w-6 h-6 rounded-full bg-amber-500/30 text-amber-300 flex items-center justify-center text-xs font-bold shrink-0">
+                                  {i + 1}
+                                </span>
+                                <span className="text-gray-200">{mod}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Additional Notes - Prominent Display */}
+                      {entry.newValue && (
+                        <div className="mt-4 p-4 rounded-xl bg-purple-500/10 border-2 border-purple-500/30">
+                          <div className="flex items-center gap-2 mb-2">
+                            <FileText className="w-5 h-5 text-purple-400" />
+                            <h4 className="text-base font-semibold text-purple-400">Additional Notes</h4>
+                          </div>
+                          <p className="text-gray-200 bg-purple-500/10 rounded-lg p-3">{entry.newValue}</p>
+                        </div>
+                      )}
+
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
                         <DetailItem label="Entry ID" value={entry.id} icon={Hash} mono />
                         <DetailItem label="Session ID" value={entry.sessionId} icon={Monitor} mono />
@@ -392,19 +443,6 @@ export function AuditLogPage() {
                           <div className="text-xs text-gray-400 font-mono break-all">
                             {entry.userAgent}
                           </div>
-                        </div>
-                      )}
-
-                      {entry.modificationsJson && entry.modificationsJson.length > 0 && (
-                        <div className="mt-4 p-3 rounded-lg bg-clinical-warning/10 border border-clinical-warning/20">
-                          <div className="text-sm text-amber-400 font-medium mb-2">Doctor Modifications</div>
-                          <ul className="text-sm text-gray-300 space-y-1">
-                            {entry.modificationsJson.map((mod, i) => (
-                              <li key={i} className="flex items-start gap-2">
-                                <span className="text-amber-400">•</span> {mod}
-                              </li>
-                            ))}
-                          </ul>
                         </div>
                       )}
 
@@ -457,15 +495,27 @@ function StatCard({
   label, 
   value, 
   icon: Icon,
-  color = 'text-clinical-accent'
+  color = 'text-clinical-accent',
+  tooltip
 }: { 
   label: string
   value: number
   icon: React.ComponentType<{ className?: string }>
   color?: string
+  tooltip?: string
 }) {
   return (
-    <div className="card">
+    <div className="card relative">
+      {tooltip && (
+        <div className="absolute top-2 right-2 group">
+          <Info className="w-4 h-4 text-clinical-muted hover:text-white cursor-help transition-colors" />
+          <div className="absolute right-0 top-6 w-48 p-2 bg-gray-900 border border-white/20 rounded-lg 
+                          text-xs text-gray-300 opacity-0 invisible group-hover:opacity-100 group-hover:visible 
+                          transition-all duration-200 z-50 shadow-xl">
+            {tooltip}
+          </div>
+        </div>
+      )}
       <div className="flex items-center gap-2 mb-2">
         <Icon className={`w-4 h-4 ${color}`} />
         <span className="text-sm text-clinical-muted">{label}</span>

@@ -89,7 +89,7 @@ export interface AuditLogEntry {
   sessionId: string
   
   // Action details
-  action: 'created' | 'viewed' | 'approved' | 'modified' | 'rejected'
+  action: 'created' | 'viewed' | 'approved' | 'modified' | 'rejected' | 'deferred'
   details: string
   
   // User information
@@ -139,11 +139,16 @@ export function generateSessionId(): string {
   return `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 }
 
+// Doctor decision status
+export type DecisionStatus = 'approved' | 'rejected' | 'deferred'
+
 // Doctor decision
 export interface DoctorDecision {
-  approved: boolean
+  approved: boolean // Keep for backward compatibility (true = approved, false = rejected/deferred)
+  status: DecisionStatus
   modifications: string[]
   rejectionReason?: string
+  deferralReason?: string
   additionalNotes?: string
   timestamp: string
   doctorId: string

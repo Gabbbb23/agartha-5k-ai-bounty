@@ -43,3 +43,4 @@ LIMIT 100;
 GRANT SELECT ON recent_audit_logs TO anon;
 GRANT SELECT ON recent_audit_logs TO authenticated;
 
+

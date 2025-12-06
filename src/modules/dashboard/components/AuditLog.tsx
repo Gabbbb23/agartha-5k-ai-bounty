@@ -46,6 +46,7 @@ export function AuditLog() {
     approved: { icon: Check, color: 'text-clinical-success', bg: 'bg-clinical-success/20' },
     modified: { icon: Edit, color: 'text-clinical-warning', bg: 'bg-clinical-warning/20' },
     rejected: { icon: X, color: 'text-clinical-danger', bg: 'bg-clinical-danger/20' },
+    deferred: { icon: Clock, color: 'text-amber-400', bg: 'bg-amber-500/20' },
   }
 
   const getRiskBadge = (level?: string) => {

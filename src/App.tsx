@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useAppStore } from '@/shared/store/appStore'
 import { IntakeWizard } from '@/modules/intake/components/IntakeWizard'
 import { AnalysisView } from '@/modules/analysis/components/AnalysisView'
@@ -6,12 +6,29 @@ import { Dashboard } from '@/modules/dashboard/components/Dashboard'
 import { Header } from '@/shared/components/Header'
 import { SamplePatientSelector } from '@/modules/intake/components/SamplePatientSelector'
 import { TabNavigation, TabId } from '@/shared/components/TabNavigation'
+import { PatientHistoryPage } from '@/modules/history/components/PatientHistoryPage'
 import { AuditLogPage } from '@/modules/audit/components/AuditLogPage'
 import { MedicalDatabaseManager } from '@/modules/medical-database/components/MedicalDatabaseManager'
+import { PatientData } from '@/shared/types/patient'
 
 function App() {
-  const { currentStep, patientData, analysisResult } = useAppStore()
+  const { currentStep, patientData, analysisResult, setCurrentStep, resetAll, loadPatientForReanalysis } = useAppStore()
   const [activeTab, setActiveTab] = useState<TabId>('workflow')
+
+  // Handle re-analyzing a patient from history
+  const handleReanalyzePatient = useCallback((patient: PatientData, existingPatientId: string) => {
+    // Reset current workflow (but don't create new entries)
+    resetAll()
+    
+    // Load the patient data with the existing patientId (no new audit entry)
+    loadPatientForReanalysis(patient, existingPatientId)
+    
+    // Go to analysis step to run AI
+    setCurrentStep(1)
+    
+    // Switch to workflow tab
+    setActiveTab('workflow')
+  }, [resetAll, setCurrentStep, loadPatientForReanalysis])
 
   return (
     <div className="min-h-screen bg-pattern">
@@ -70,6 +87,12 @@ function App() {
               )}
             </div>
           </>
+        )}
+
+        {activeTab === 'history' && (
+          <div className="animate-fade-in">
+            <PatientHistoryPage onReanalyzePatient={handleReanalyzePatient} />
+          </div>
         )}
 
         {activeTab === 'audit' && (

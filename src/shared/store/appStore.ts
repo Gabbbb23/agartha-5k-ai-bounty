@@ -23,13 +23,16 @@ interface AppState {
   
   // Patient data
   patientData: PatientData | null
-  setPatientData: (data: PatientData) => void
+  currentPatientId: string | null // Track patient ID for consistent audit logging
+  setPatientData: (data: PatientData, isSamplePatient?: boolean) => void
+  loadPatientForReanalysis: (data: PatientData, existingPatientId: string) => void // Load without new audit entry
   clearPatientData: () => void
   
   // Analysis
   analysisResult: AnalysisResult | null
   analysisId: string | null
   setAnalysisResult: (result: AnalysisResult) => void
+  loadAnalysisFromHistory: (result: AnalysisResult) => void // Load without creating audit entry
   isAnalyzing: boolean
   setIsAnalyzing: (analyzing: boolean) => void
   analysisError: string | null
@@ -47,7 +50,7 @@ interface AppState {
   supabaseConnected: boolean
   
   // Reset
-  resetAll: (skippedReview?: boolean) => void
+  resetAll: () => void
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -60,22 +63,30 @@ export const useAppStore = create<AppState>((set, get) => ({
   
   // Patient data
   patientData: null,
-  setPatientData: (data) => {
-    set({ patientData: data })
-    
+  currentPatientId: null,
+  setPatientData: (data, isSamplePatient = false) => {
+    // Generate a consistent patientId that will be used for all audit entries for this patient
     const patientId = `${data.firstName}-${data.lastName}-${Date.now()}`
+    set({ patientData: data, currentPatientId: patientId })
     
     get().addAuditEntry({
       action: 'created',
-      userId: 'system',
-      userName: 'System',
+      userId: isSamplePatient ? 'system' : 'intake-form',
+      userName: isSamplePatient ? 'System (Sample Patient)' : 'Intake Form',
       patientId,
-      details: 'Patient intake data submitted',
+      details: isSamplePatient 
+        ? `Sample patient loaded: ${data.firstName} ${data.lastName}` 
+        : `Patient intake completed: ${data.firstName} ${data.lastName}`,
       patientDataHash: generateDataHash(data),
       patientSnapshot: data as unknown as Record<string, unknown>,
     })
   },
-  clearPatientData: () => set({ patientData: null }),
+  // Load patient for reanalysis - uses existing patientId, doesn't create new audit entry
+  loadPatientForReanalysis: (data, existingPatientId) => {
+    set({ patientData: data, currentPatientId: existingPatientId })
+    // No audit entry created - the analysis will update the existing patient's record
+  },
+  clearPatientData: () => set({ patientData: null, currentPatientId: null }),
   
   // Analysis
   analysisResult: null,
@@ -85,9 +96,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ analysisResult: result, analysisId })
     
     const patientData = get().patientData
-    if (patientData) {
-      const patientId = `${patientData.firstName}-${patientData.lastName}`
-      
+    const patientId = get().currentPatientId
+    if (patientData && patientId) {
       get().addAuditEntry({
         action: 'created',
         userId: 'ai-system',
@@ -102,25 +112,15 @@ export const useAppStore = create<AppState>((set, get) => ({
         contraindicationsCount: result.contraindications.length,
         treatmentMedication: result.primaryRecommendation.medication,
         treatmentDosage: result.primaryRecommendation.dosage,
-        analysisSnapshot: {
-          overallRiskLevel: result.overallRiskLevel,
-          riskScore: result.riskScore,
-          primaryMedication: result.primaryRecommendation.medication,
-          primaryDosage: result.primaryRecommendation.dosage,
-          confidenceScore: result.primaryRecommendation.confidenceScore,
-          drugInteractions: result.drugInteractions.map(i => ({
-            drugs: `${i.drug1} + ${i.drug2}`,
-            severity: i.severity,
-          })),
-          contraindications: result.contraindications.map(c => ({
-            medication: c.medication,
-            condition: c.condition,
-            severity: c.severity,
-          })),
-          modelVersion: result.modelVersion,
-        },
+        // Store the FULL analysis result so it can be restored from history
+        analysisSnapshot: result as unknown as Record<string, unknown>,
       })
     }
+  },
+  // Load analysis from history without creating a new audit entry
+  loadAnalysisFromHistory: (result) => {
+    const analysisId = `history-${Date.now()}`
+    set({ analysisResult: result, analysisId })
   },
   isAnalyzing: false,
   setIsAnalyzing: (analyzing) => set({ isAnalyzing: analyzing }),
@@ -133,20 +133,31 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ doctorDecision: decision })
     
     const patientData = get().patientData
+    const patientId = get().currentPatientId
     const analysisResult = get().analysisResult
     const analysisId = get().analysisId
     
-    if (patientData) {
-      const patientId = `${patientData.firstName}-${patientData.lastName}`
+    if (patientData && patientId) {
+      const status = decision.status || (decision.approved ? 'approved' : 'rejected')
+      
+      // Determine action and details based on status
+      let action: 'approved' | 'rejected' | 'deferred' = status
+      let details: string
+      
+      if (status === 'approved') {
+        details = `Treatment plan approved${decision.modifications.length > 0 ? ` with ${decision.modifications.length} modification(s)` : ''}`
+      } else if (status === 'deferred') {
+        details = `Review deferred: ${decision.deferralReason || 'No reason provided'}`
+      } else {
+        details = `Treatment plan rejected: ${decision.rejectionReason}`
+      }
       
       get().addAuditEntry({
-        action: decision.approved ? 'approved' : 'rejected',
+        action,
         userId: decision.doctorId,
         userName: decision.doctorName,
         patientId,
-        details: decision.approved 
-          ? `Treatment plan approved${decision.modifications.length > 0 ? ` with ${decision.modifications.length} modification(s)` : ''}`
-          : `Treatment plan rejected: ${decision.rejectionReason}`,
+        details,
         analysisId: analysisId || undefined,
         riskLevel: analysisResult?.overallRiskLevel,
         riskScore: analysisResult?.riskScore,
@@ -233,33 +244,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   
   // Reset (keeps audit log in database, just clears local state)
-  resetAll: (skippedReview = false) => {
-    const state = get()
-    
-    // Log if review was skipped
-    if (skippedReview && state.analysisResult && !state.doctorDecision && state.patientData) {
-      const patientId = `${state.patientData.firstName}-${state.patientData.lastName}`
-      
-      state.addAuditEntry({
-        action: 'rejected',
-        userId: 'unknown-physician',
-        userName: 'Unknown Physician',
-        patientId,
-        details: '⚠️ COMPLIANCE WARNING: Treatment plan review was skipped - New patient started without physician decision',
-        analysisId: state.analysisId || undefined,
-        riskLevel: state.analysisResult.overallRiskLevel,
-        riskScore: state.analysisResult.riskScore,
-        confidenceScore: state.analysisResult.primaryRecommendation.confidenceScore,
-        drugInteractionsCount: state.analysisResult.drugInteractions.length,
-        contraindicationsCount: state.analysisResult.contraindications.length,
-        treatmentMedication: state.analysisResult.primaryRecommendation.medication,
-        treatmentDosage: state.analysisResult.primaryRecommendation.dosage,
-      })
-    }
-    
+  // Note: If review was skipped, the case remains as "pending" in history - no fake rejection is logged
+  resetAll: () => {
     set({
       currentStep: 0,
       patientData: null,
+      currentPatientId: null,
       analysisResult: null,
       analysisId: null,
       isAnalyzing: false,
