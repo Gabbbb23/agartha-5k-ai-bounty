@@ -11,15 +11,34 @@ import {
 const GEMINI_API_URL =
   "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent";
 
+// Custom error class for analysis failures
+export class AnalysisError extends Error {
+  constructor(
+    message: string,
+    public readonly code:
+      | "NO_API_KEY"
+      | "API_ERROR"
+      | "PARSE_ERROR"
+      | "VALIDATION_ERROR"
+      | "NETWORK_ERROR",
+    public readonly details?: string
+  ) {
+    super(message);
+    this.name = "AnalysisError";
+  }
+}
+
 export async function analyzePatient(
   patient: PatientData
 ): Promise<AnalysisResult> {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
   if (!apiKey || apiKey === "your_gemini_api_key_here") {
-    // Return mock analysis if no API key
-    console.warn("No API key provided, returning mock analysis");
-    return generateMockAnalysis(patient);
+    throw new AnalysisError(
+      "No API key configured",
+      "NO_API_KEY",
+      "Please add VITE_GEMINI_API_KEY to your .env file. Get a free API key from Google AI Studio."
+    );
   }
 
   const systemPrompt = buildMedicalSystemPrompt();
@@ -70,9 +89,35 @@ export async function analyzePatient(
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error("API Error:", error);
-      throw new Error(`API request failed: ${response.status}`);
+      const errorText = await response.text();
+      console.error("API Error:", errorText);
+
+      // Parse error for better messaging
+      let errorMessage = `API request failed with status ${response.status}`;
+      let errorDetails = errorText;
+
+      try {
+        const errorJson = JSON.parse(errorText);
+        if (errorJson.error?.message) {
+          errorMessage = errorJson.error.message;
+          if (errorJson.error.status === "RESOURCE_EXHAUSTED") {
+            errorMessage = "API quota exceeded";
+            errorDetails =
+              "You have exceeded your Gemini API quota. Please wait or check your API plan.";
+          } else if (errorJson.error.status === "INVALID_ARGUMENT") {
+            errorMessage = "Invalid API request";
+            errorDetails = "The API request was malformed. Please try again.";
+          } else if (errorJson.error.status === "NOT_FOUND") {
+            errorMessage = "API model not found";
+            errorDetails =
+              "The specified AI model is not available. Please contact support.";
+          }
+        }
+      } catch {
+        // Keep original error text
+      }
+
+      throw new AnalysisError(errorMessage, "API_ERROR", errorDetails);
     }
 
     const data = await response.json();
@@ -82,7 +127,21 @@ export async function analyzePatient(
 
     if (!content) {
       console.error("No content in Gemini response:", data);
-      throw new Error("No content in AI response");
+
+      // Check for safety blocks
+      if (data.candidates?.[0]?.finishReason === "SAFETY") {
+        throw new AnalysisError(
+          "Response blocked by safety filters",
+          "API_ERROR",
+          "The AI response was blocked due to safety filters. Please modify the patient information and try again."
+        );
+      }
+
+      throw new AnalysisError(
+        "No content in AI response",
+        "API_ERROR",
+        "The AI did not return a valid response. Please try again."
+      );
     }
 
     // Parse and validate the JSON response
@@ -96,23 +155,56 @@ export async function analyzePatient(
       parsed = JSON.parse(jsonMatch[0]);
     } catch (parseError) {
       console.error("Failed to parse LLM response:", content);
-      throw new Error("Invalid JSON response from AI");
+      throw new AnalysisError(
+        "Failed to parse AI response",
+        "PARSE_ERROR",
+        "The AI returned an invalid response format. Please try again."
+      );
     }
 
     // Validate against schema
-    const validated = AnalysisResultSchema.parse(parsed);
+    try {
+      const validated = AnalysisResultSchema.parse(parsed);
 
-    // Update model version to reflect Gemini
-    validated.modelVersion = "gemini-2.0-flash";
+      // Update model version to reflect Gemini
+      validated.modelVersion = "gemini-2.0-flash";
 
-    // Enrich with local database checks
-    const enrichedResult = enrichAnalysisWithDatabase(validated, patient);
+      // Enrich with local database checks
+      const enrichedResult = enrichAnalysisWithDatabase(validated, patient);
 
-    return enrichedResult;
+      return enrichedResult;
+    } catch (validationError) {
+      console.error("Schema validation failed:", validationError);
+      throw new AnalysisError(
+        "AI response validation failed",
+        "VALIDATION_ERROR",
+        "The AI response did not match the expected format. Please try again."
+      );
+    }
   } catch (error) {
+    // Re-throw AnalysisError as-is
+    if (error instanceof AnalysisError) {
+      throw error;
+    }
+
+    // Handle network errors
+    if (error instanceof TypeError && error.message.includes("fetch")) {
+      throw new AnalysisError(
+        "Network error",
+        "NETWORK_ERROR",
+        "Failed to connect to the AI service. Please check your internet connection."
+      );
+    }
+
+    // Handle other errors
     console.error("Analysis failed:", error);
-    // Fall back to mock analysis
-    return generateMockAnalysis(patient);
+    throw new AnalysisError(
+      "Analysis failed",
+      "API_ERROR",
+      error instanceof Error
+        ? error.message
+        : "An unexpected error occurred. Please try again."
+    );
   }
 }
 
@@ -222,394 +314,4 @@ function enrichAnalysisWithDatabase(
   }
 
   return analysis;
-}
-
-function generateMockAnalysis(patient: PatientData): AnalysisResult {
-  // Generate realistic mock data based on patient information
-  const hasWarfarin = patient.currentMedications.some((m) =>
-    m.name.toLowerCase().includes("warfarin")
-  );
-  const hasNitrates = patient.currentMedications.some(
-    (m) =>
-      m.name.toLowerCase().includes("nitro") ||
-      m.name.toLowerCase().includes("isosorbide")
-  );
-  const hasBetaBlocker = patient.currentMedications.some(
-    (m) =>
-      m.name.toLowerCase().includes("metoprolol") ||
-      m.name.toLowerCase().includes("carvedilol")
-  );
-  const hasHeartCondition = patient.conditions.some(
-    (c) =>
-      c.toLowerCase().includes("heart") ||
-      c.toLowerCase().includes("cardiac") ||
-      c.toLowerCase().includes("coronary")
-  );
-  const hasDiabetes = patient.conditions.some((c) =>
-    c.toLowerCase().includes("diabetes")
-  );
-  const hasKidneyDisease = patient.conditions.some(
-    (c) =>
-      c.toLowerCase().includes("kidney") || c.toLowerCase().includes("renal")
-  );
-  const isEdComplaint =
-    patient.primaryComplaint.toLowerCase().includes("erectile") ||
-    patient.primaryComplaint.toLowerCase().includes("ed");
-  const isHairLoss = patient.primaryComplaint.toLowerCase().includes("hair");
-  const isWeightLoss = patient.primaryComplaint
-    .toLowerCase()
-    .includes("weight");
-
-  // Determine risk level based on patient factors
-  let riskLevel: "low" | "medium" | "high" | "critical" = "low";
-  let riskScore = 25;
-
-  const drugInteractions: AnalysisResult["drugInteractions"] = [];
-  const contraindications: AnalysisResult["contraindications"] = [];
-  const riskFactors: AnalysisResult["riskFactors"] = [];
-
-  // Check for critical interactions
-  if (isEdComplaint && hasNitrates) {
-    riskLevel = "critical";
-    riskScore = 95;
-    drugInteractions.push({
-      drug1: "Sildenafil (proposed)",
-      drug2: "Nitrates (current)",
-      severity: "contraindicated",
-      description:
-        "LIFE-THREATENING: Combination can cause severe, potentially fatal hypotension",
-      recommendation:
-        "DO NOT prescribe PDE5 inhibitors. Consider alternative treatments for ED.",
-    });
-  }
-
-  if (
-    hasWarfarin &&
-    patient.currentMedications.some((m) =>
-      m.name.toLowerCase().includes("aspirin")
-    )
-  ) {
-    drugInteractions.push({
-      drug1: "Warfarin",
-      drug2: "Aspirin",
-      severity: "major",
-      description: "Significantly increased bleeding risk",
-      recommendation:
-        "If combination is intentional, ensure regular INR monitoring and GI protection",
-    });
-    if (riskLevel === "low") {
-      riskLevel = "medium";
-      riskScore = Math.max(riskScore, 55);
-    }
-  }
-
-  // Age-related risks
-  if (patient.healthMetrics.age >= 65) {
-    riskFactors.push({
-      factor: "Advanced age",
-      severity: "medium",
-      description: `Patient is ${patient.healthMetrics.age} years old - increased sensitivity to medications`,
-      mitigation: "Start with lower doses, monitor closely for side effects",
-    });
-    riskScore = Math.max(riskScore, 45);
-    if (riskLevel === "low") riskLevel = "medium";
-  }
-
-  // Cardiovascular risks for ED treatment
-  if (isEdComplaint && hasHeartCondition) {
-    contraindications.push({
-      medication: "PDE5 inhibitors",
-      condition: "Cardiovascular disease",
-      severity: "relative",
-      description:
-        "Sexual activity may pose cardiac risk; PDE5 inhibitors affect blood pressure",
-      recommendation:
-        "Assess cardiovascular fitness for sexual activity before prescribing",
-    });
-    riskFactors.push({
-      factor: "Cardiovascular disease",
-      severity: "high",
-      description:
-        "Underlying heart condition increases risk with ED medications",
-      mitigation: "Cardiac clearance recommended, start with lowest dose",
-    });
-    if (riskLevel !== "critical") {
-      riskLevel = "high";
-      riskScore = Math.max(riskScore, 70);
-    }
-  }
-
-  // Kidney disease
-  if (hasKidneyDisease) {
-    riskFactors.push({
-      factor: "Chronic Kidney Disease",
-      severity: "high",
-      description: "Impaired drug clearance - dose adjustments required",
-      mitigation: "Use renal dosing guidelines, avoid nephrotoxic drugs",
-    });
-    if (riskLevel === "low") {
-      riskLevel = "medium";
-      riskScore = Math.max(riskScore, 50);
-    }
-  }
-
-  // Diabetes
-  if (hasDiabetes && hasBetaBlocker) {
-    drugInteractions.push({
-      drug1: "Beta-blocker",
-      drug2: "Diabetes medications",
-      severity: "moderate",
-      description: "Beta-blockers may mask symptoms of hypoglycemia",
-      recommendation:
-        "Educate patient on alternate hypoglycemia symptoms, consider cardioselective beta-blocker",
-    });
-  }
-
-  // Polypharmacy
-  if (patient.currentMedications.length >= 5) {
-    riskFactors.push({
-      factor: "Polypharmacy",
-      severity: "medium",
-      description: `Patient on ${patient.currentMedications.length} medications - increased interaction risk`,
-      mitigation:
-        "Review medication list for deprescribing opportunities, careful monitoring",
-    });
-    if (riskLevel === "low") {
-      riskLevel = "medium";
-      riskScore = Math.max(riskScore, 50);
-    }
-  }
-
-  // Build treatment recommendation based on complaint
-  let primaryRecommendation: AnalysisResult["primaryRecommendation"];
-  let alternativeTreatments: AnalysisResult["alternativeTreatments"] = [];
-
-  if (isEdComplaint) {
-    if (hasNitrates) {
-      primaryRecommendation = {
-        medication: "Vacuum Erection Device (non-pharmacological)",
-        dosage: "N/A",
-        frequency: "As needed",
-        duration: "Ongoing",
-        route: "External device",
-        confidenceScore: 75,
-        rationale:
-          "PDE5 inhibitors are contraindicated due to nitrate use. VED is a safe alternative.",
-        monitoringRequired: ["Patient satisfaction", "Proper technique"],
-        warnings: ["Do not use for more than 30 minutes at a time"],
-      };
-      alternativeTreatments = [
-        {
-          medication: "Alprostadil (intracavernosal)",
-          dosage: "10-20 mcg",
-          rationale:
-            "Direct injection therapy, does not interact with nitrates",
-          confidenceScore: 65,
-          considerations: [
-            "Requires injection training",
-            "Risk of priapism",
-            "Penile fibrosis with long-term use",
-          ],
-        },
-      ];
-    } else {
-      primaryRecommendation = {
-        medication: "Sildenafil",
-        dosage: patient.healthMetrics.age >= 65 ? "25mg" : "50mg",
-        frequency: "As needed, 1 hour before sexual activity",
-        duration: "Ongoing",
-        route: "Oral",
-        confidenceScore: hasHeartCondition ? 65 : 85,
-        rationale:
-          "First-line treatment for erectile dysfunction. Effective in most cases.",
-        monitoringRequired: [
-          "Blood pressure",
-          "Efficacy assessment at follow-up",
-        ],
-        warnings: hasHeartCondition
-          ? [
-              "Start with lower dose",
-              "Assess cardiovascular fitness",
-              "Do not use with nitrates",
-            ]
-          : ["Do not use with nitrates", "Avoid grapefruit juice"],
-      };
-      alternativeTreatments = [
-        {
-          medication: "Tadalafil",
-          dosage: "10mg",
-          rationale:
-            "Longer duration of action (up to 36 hours), may be preferred for spontaneity",
-          confidenceScore: 80,
-          considerations: [
-            "Once-daily dosing option available",
-            "More back pain reported",
-          ],
-        },
-      ];
-    }
-  } else if (isHairLoss) {
-    const isFemale = patient.sex === "female";
-    if (isFemale) {
-      primaryRecommendation = {
-        medication: "Minoxidil 2% topical solution",
-        dosage: "1mL",
-        frequency: "Twice daily",
-        duration: "Ongoing - takes 4-6 months to see results",
-        route: "Topical",
-        confidenceScore: 80,
-        rationale:
-          "FDA-approved for female pattern hair loss. Safe and well-tolerated.",
-        monitoringRequired: ["Scalp irritation", "Efficacy at 6 months"],
-        warnings: [
-          "May cause initial shedding",
-          "Must continue for maintenance",
-        ],
-      };
-    } else {
-      primaryRecommendation = {
-        medication: "Finasteride",
-        dosage: "1mg",
-        frequency: "Once daily",
-        duration: "Ongoing - takes 6-12 months for full effect",
-        route: "Oral",
-        confidenceScore: 85,
-        rationale:
-          "First-line oral treatment for male pattern baldness. Blocks DHT conversion.",
-        monitoringRequired: [
-          "PSA levels (baseline)",
-          "Sexual function questionnaire",
-        ],
-        warnings: [
-          "May affect PSA levels",
-          "Do not donate blood while taking",
-          "Sexual side effects possible (1-2%)",
-        ],
-      };
-      alternativeTreatments = [
-        {
-          medication: "Minoxidil 5% topical",
-          dosage: "1mL",
-          rationale:
-            "Can be used alone or in combination with finasteride for enhanced effect",
-          confidenceScore: 75,
-          considerations: [
-            "Topical application",
-            "Twice daily application required",
-          ],
-        },
-      ];
-    }
-  } else if (isWeightLoss) {
-    primaryRecommendation = {
-      medication: "Semaglutide",
-      dosage: "0.25mg weekly, titrate to 2.4mg",
-      frequency: "Once weekly",
-      duration: "16 weeks minimum, typically ongoing",
-      route: "Subcutaneous injection",
-      confidenceScore: 90,
-      rationale:
-        "GLP-1 agonist FDA-approved for weight management. Average 15% body weight loss.",
-      monitoringRequired: ["Weight", "Blood glucose", "GI tolerability"],
-      warnings: [
-        "Do not use if history of medullary thyroid carcinoma",
-        "GI side effects common initially",
-        "Slow titration required",
-      ],
-    };
-    alternativeTreatments = [
-      {
-        medication: "Phentermine-Topiramate",
-        dosage: "3.75mg/23mg, titrate up",
-        rationale: "Alternative for those who cannot use GLP-1 agonists",
-        confidenceScore: 70,
-        considerations: [
-          "Contraindicated in cardiovascular disease",
-          "Controlled substance",
-          "Avoid in pregnancy",
-        ],
-      },
-    ];
-  } else {
-    // Generic recommendation
-    primaryRecommendation = {
-      medication: "Clinical evaluation needed",
-      dosage: "N/A",
-      frequency: "N/A",
-      duration: "N/A",
-      route: "N/A",
-      confidenceScore: 50,
-      rationale:
-        "Further clinical evaluation needed to determine appropriate treatment",
-      monitoringRequired: ["Complete diagnostic workup"],
-      warnings: ["Additional assessment required"],
-    };
-  }
-
-  // Lifestyle recommendations
-  const lifestyleRecommendations: string[] = [];
-  if (patient.lifestyle.smokingStatus === "current") {
-    lifestyleRecommendations.push(
-      "Smoking cessation strongly recommended - improves cardiovascular health and treatment outcomes"
-    );
-  }
-  if (patient.lifestyle.alcoholUse === "heavy") {
-    lifestyleRecommendations.push(
-      "Reduce alcohol consumption - may interact with medications and affect treatment efficacy"
-    );
-  }
-  if (patient.lifestyle.exerciseFrequency === "sedentary") {
-    lifestyleRecommendations.push(
-      "Increase physical activity - aim for 150 minutes moderate exercise per week"
-    );
-  }
-  if (patient.healthMetrics.bloodPressureSystolic >= 140) {
-    lifestyleRecommendations.push(
-      "DASH diet recommended for blood pressure control"
-    );
-  }
-
-  // Labs
-  const labTests: string[] = ["Complete metabolic panel"];
-  if (hasDiabetes) labTests.push("HbA1c");
-  if (hasKidneyDisease) labTests.push("GFR/Creatinine");
-  if (isEdComplaint) labTests.push("Testosterone level", "Lipid panel");
-  if (isHairLoss && patient.sex === "female")
-    labTests.push("TSH", "Iron studies", "DHEA-S");
-
-  return {
-    overallRiskLevel: riskLevel,
-    riskScore,
-    summaryAssessment: `${patient.firstName} ${patient.lastName}, ${
-      patient.healthMetrics.age
-    }yo ${patient.sex}, presenting with ${patient.primaryComplaint}. ${
-      riskLevel === "critical"
-        ? "CRITICAL: Contraindicated drug combination identified. "
-        : riskLevel === "high"
-        ? "HIGH RISK: Multiple significant risk factors present. "
-        : riskLevel === "medium"
-        ? "MODERATE RISK: Some risk factors require monitoring. "
-        : "LOW RISK: Few complicating factors. "
-    }${patient.currentMedications.length} current medications, ${
-      patient.conditions.length
-    } active conditions, ${patient.allergies.length} documented allergies.`,
-    primaryRecommendation,
-    alternativeTreatments,
-    drugInteractions,
-    contraindications,
-    riskFactors,
-    lifestyleRecommendations,
-    followUpRecommendations: [
-      "Follow-up in 4-6 weeks to assess treatment efficacy",
-      "Earlier if side effects occur",
-      riskLevel === "high" || riskLevel === "critical"
-        ? "Consider specialist referral"
-        : "Routine monitoring as indicated",
-    ],
-    labTestsRecommended: labTests,
-    analysisTimestamp: new Date().toISOString(),
-    modelVersion: "mock-analysis-v1",
-    disclaimer:
-      "This is a clinical decision support tool. All recommendations must be reviewed and approved by a licensed healthcare provider. This mock analysis is for demonstration purposes.",
-  };
 }

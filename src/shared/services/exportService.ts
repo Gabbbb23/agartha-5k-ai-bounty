@@ -178,6 +178,16 @@ export function exportAuditLogToCsv(auditLog: AuditLogEntry[]): void {
   exportToCsv(flatData, filename)
 }
 
+// Export single audit log entry
+export function exportSingleAuditEntryToJson(entry: AuditLogEntry): void {
+  const exportData = {
+    exportDate: new Date().toISOString(),
+    entry,
+  }
+  const filename = `audit_entry_${entry.action}_${entry.id.slice(0, 8)}_${new Date().toISOString().split('T')[0]}`
+  exportToJson(exportData, filename)
+}
+
 // ==================== Medical Database Export ====================
 
 export interface MedicalDatabaseExportData {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAppStore } from '@/shared/store/appStore'
 import { ExportButton } from '@/shared/components/ExportButton'
-import { exportAuditLogToJson, exportAuditLogToCsv } from '@/shared/services/exportService'
+import { exportAuditLogToJson, exportAuditLogToCsv, exportSingleAuditEntryToJson } from '@/shared/services/exportService'
 import { 
   Clock, 
   User, 
@@ -23,7 +23,8 @@ import {
   Search,
   Filter,
   RefreshCw,
-  Calendar
+  Calendar,
+  Download
 } from 'lucide-react'
 import { format } from 'date-fns'
 
@@ -343,6 +344,22 @@ export function AuditLogPage() {
                   {/* Expanded details */}
                   {isExpanded && (
                     <div className="px-4 pb-4 pt-0 border-t border-white/5">
+                      {/* Export single entry button */}
+                      <div className="flex justify-end mt-3">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            exportSingleAuditEntryToJson(entry)
+                          }}
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium
+                                     bg-clinical-accent/10 text-clinical-accent border border-clinical-accent/30
+                                     hover:bg-clinical-accent/20 transition-colors"
+                          title="Export this entry as JSON"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          Export Entry
+                        </button>
+                      </div>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
                         <DetailItem label="Entry ID" value={entry.id} icon={Hash} mono />
                         <DetailItem label="Session ID" value={entry.sessionId} icon={Monitor} mono />
